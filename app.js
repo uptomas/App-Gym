@@ -159,6 +159,16 @@ const EXTRA = [
   ['thruster', 'Thruster', 'Other', 'l', 0, [0.4, 0.6, 0.85, 1.1, 1.35], 0, ['quads', 'shoulders']],
   ['kb_swing', 'Kettlebell swing', 'Other', 'l', 0, null, 0, []],
   ['farmer_walk', "Farmer's walk (per hand)", 'Other', 'u', 0, null, 1, []],
+  ['bw_squat', 'Bodyweight squat', 'Legs', 'l', 1, null, 0, []],
+  ['bw_lunge', 'Bodyweight lunge', 'Legs', 'l', 1, null, 0, []],
+  ['pistol', 'Pistol squat', 'Legs', 'l', 1, null, 0, []],
+  ['bw_glute_bridge', 'Single-leg glute bridge', 'Legs', 'l', 1, null, 0, []],
+  ['bw_calf', 'Single-leg calf raise', 'Legs', 'l', 1, null, 0, []],
+  ['nordic', 'Nordic hamstring curl', 'Legs', 'l', 1, null, 0, []],
+  ['pike_pushup', 'Pike push-up', 'Shoulders', 'u', 1, null, 0, []],
+  ['diamond_pushup', 'Diamond push-up', 'Arms', 'u', 1, null, 0, []],
+  ['inverted_row', 'Inverted row', 'Back', 'u', 1, null, 0, []],
+  ['crunch', 'Crunch', 'Core', 'u', 1, null, 0, []],
 ];
 const EXTRA_MUSCLES = {};
 for (const [id, name, group, reg, bw, std, ph, mus] of EXTRA) {
@@ -422,6 +432,7 @@ const IC = {
   copy: '<svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="1"/><path d="M4 16V4h12"/></svg>',
   search: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>',
   chev: '<svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>',
+  swap: '<svg viewBox="0 0 24 24"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg>',
 };
 const prBadge = (type, small = false) => type === 'w'
   ? `<span class="pr pr-w${small ? ' sm' : ''}" title="Weight record">▲ WEIGHT PR</span>`
@@ -479,7 +490,16 @@ const VIEWS = {
         <li class="${C.streak >= 4 ? 'done' : ''}"><span>Weeks in a row training</span><b>[${Math.min(C.streak, 4)}/4]</b></li>
       </ul>
       ${C.trainedToday ? '<div class="quest-ok">DAILY QUEST COMPLETE</div>' : '<div class="quest-warn">⚠ Failing the daily quest carries no penalty… this time.</div>'}
-      <button class="btn primary wide" data-act="new">${IC.plus}<span>START WORKOUT</span></button>
+      ${(() => {
+        const tp = todayPlanDay();
+        if (!tp) return `<button class="btn primary wide" data-act="new">${IC.plus}<span>START WORKOUT</span></button>
+          <button class="btn ghost wide" data-wview="plan">${IC.bolt}<span>CREATE A TRAINING PLAN</span></button>`;
+        return `<div class="today-plan ${tp.today ? '' : 'rest'}">
+            <div><span>${tp.today ? "TODAY'S PLAN" : 'REST DAY · NEXT'}</span><b>${esc(tp.day.name)}${tp.today ? '' : ` <small>${WEEKDAYS[tp.day.weekday]}</small>`}</b><small>${tp.day.ex.length} exercises · ${DAY_T[tp.day.type].focus}</small></div>
+          </div>
+          <button class="btn primary wide" data-startday="${tp.i}">${IC.bolt}<span>START ${esc(tp.day.name.toUpperCase())}</span></button>
+          <button class="btn ghost wide" data-act="new">${IC.plus}<span>FREE WORKOUT</span></button>`;
+      })()}
     </section>
 
     <section class="grid3">
@@ -496,6 +516,12 @@ const VIEWS = {
   },
 
   workouts() {
+    const v = state.wView === 'plan' ? 'plan' : 'history';
+    const seg = `<div class="chips seg range"><button class="chip ${v === 'history' ? 'on' : ''}" data-wview="history">HISTORY</button><button class="chip ${v === 'plan' ? 'on' : ''}" data-wview="plan">TRAINING PLAN</button></div>`;
+    return seg + (v === 'plan' ? (state.plan && !state.planEdit ? planDisplay() : planBuilder()) : VIEWS.history());
+  },
+
+  history() {
     const ws = [...state.workouts].sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || 0) - (a.createdAt || 0));
     if (!ws.length) return `
       <section class="panel center">
@@ -936,6 +962,219 @@ function scrub(ev) {
 document.addEventListener('pointermove', scrub);
 document.addEventListener('pointerdown', scrub);
 
+
+/* ---------- planos de treino ---------- */
+const EQUIP = [
+  ['barbell', 'Barbell & plates'], ['rack', 'Squat / power rack'], ['bench', 'Adjustable bench'], ['dumbbells', 'Dumbbells'],
+  ['ezbar', 'EZ curl bar'], ['kettlebell', 'Kettlebells'], ['pullup', 'Pull-up bar'], ['dip', 'Dip station'],
+  ['cable', 'Cable machine'], ['latpull', 'Lat pulldown'], ['seatedrow', 'Seated row machine'], ['tbar', 'T-bar row'],
+  ['smith', 'Smith machine'], ['legpress', 'Leg press'], ['hacksquat', 'Hack squat'], ['legext', 'Leg extension'],
+  ['legcurl', 'Leg curl'], ['calf', 'Calf raise machine'], ['abductor', 'Hip abduction / adduction'], ['chestpress', 'Chest press machine'],
+  ['pecdeck', 'Pec deck / rear delt'], ['shoulderpress', 'Shoulder press machine'], ['backext', 'Back extension bench'], ['crunch', 'Ab crunch machine'],
+];
+const EQUIP_PRESETS = {
+  full: { name: 'Full gym', eq: EQUIP.map(e => e[0]) },
+  barbell: { name: 'Barbell gym', eq: ['barbell', 'rack', 'bench', 'dumbbells', 'ezbar', 'pullup', 'dip'] },
+  home: { name: 'Home (dumbbells)', eq: ['dumbbells', 'bench', 'pullup', 'kettlebell'] },
+  bw: { name: 'Bodyweight only', eq: ['pullup', 'dip'] },
+};
+// equipamento necessário: cada item é obrigatório; um array interno = qualquer um serve
+const REQ = {
+  supino: ['barbell', 'bench'], supino_incl: ['barbell', 'bench'], supino_halt: ['dumbbells', 'bench'], supino_incl_halt: ['dumbbells', 'bench'],
+  peck_deck: ['pecdeck'], dips: ['dip'], peso_morto: ['barbell'], remada_barra: ['barbell'], remada_halt: ['dumbbells', 'bench'],
+  elevacoes: ['pullup'], puxada: ['latpull'], remada_polia: ['seatedrow'], agachamento: ['barbell', 'rack'], agach_frontal: ['barbell', 'rack'],
+  leg_press: ['legpress'], rdl: ['barbell'], hip_thrust: ['barbell', 'bench'], afundos: ['dumbbells'], leg_ext: ['legext'], leg_curl: ['legcurl'],
+  gemeos: ['calf'], press_militar: ['barbell'], press_halt: ['dumbbells', 'bench'], elev_lateral: ['dumbbells'], face_pull: ['cable'],
+  curl_barra: ['barbell'], curl_halt: ['dumbbells'], triceps_polia: ['cable'], triceps_frances: [['ezbar', 'barbell'], 'bench'], abd_polia: ['cable'],
+  decline_bench: ['barbell', 'bench'], smith_bench: ['smith', 'bench'], chest_press: ['chestpress'], incline_machine: ['chestpress'],
+  db_fly: ['dumbbells', 'bench'], cable_fly: ['cable'], pushup: [], pendlay: ['barbell'], tbar_row: [['tbar', 'barbell']], machine_row: ['seatedrow'],
+  chinup: ['pullup'], close_pulldown: ['latpull'], straight_arm: ['cable'], sumo_dl: ['barbell'], rack_pull: ['barbell', 'rack'], shrug: ['barbell'],
+  back_ext: ['backext'], hack_squat: ['hacksquat'], smith_squat: ['smith'], goblet: [['dumbbells', 'kettlebell']], walking_lunge: ['dumbbells'],
+  step_up: ['dumbbells', 'bench'], good_morning: ['barbell', 'rack'], seated_leg_curl: ['legcurl'], glute_bridge: ['barbell'],
+  hip_abduction: ['abductor'], hip_adduction: ['abductor'], cable_kickback: ['cable'], seated_calf: ['calf'], standing_calf: [['smith', 'calf']],
+  arnold: ['dumbbells', 'bench'], machine_shoulder: ['shoulderpress'], push_press: ['barbell', 'rack'], cable_lateral: ['cable'],
+  rear_delt: ['dumbbells'], reverse_pec: ['pecdeck'], front_raise: ['dumbbells'], upright_row: [['barbell', 'ezbar', 'cable']],
+  landmine_press: ['barbell'], hammer: ['dumbbells'], preacher: ['ezbar'], ez_curl: ['ezbar'], cable_curl: ['cable'],
+  incline_curl: ['dumbbells', 'bench'], concentration: ['dumbbells', 'bench'], close_grip: ['barbell', 'bench'], overhead_ext: ['cable'],
+  db_overhead_ext: ['dumbbells'], rope_pushdown: ['cable'], bench_dips: ['bench'], wrist_curl: [['dumbbells', 'barbell']],
+  machine_crunch: ['crunch'], hanging_leg: ['pullup'], decline_situp: ['bench'], russian_twist: [], thruster: ['barbell'],
+  kb_swing: ['kettlebell'], farmer_walk: [['dumbbells', 'kettlebell']],
+  bw_squat: [], bw_lunge: [], pistol: [], bw_glute_bridge: [], bw_calf: [], nordic: [], pike_pushup: [], diamond_pushup: [],
+  inverted_row: [['pullup', 'smith', 'rack']], crunch: [],
+};
+const canDo = (id, gym) => id in REQ && REQ[id].every(r => Array.isArray(r) ? r.some(k => gym.has(k)) : gym.has(r));
+
+// padrões de movimento → candidatos por ordem de preferência
+const SLOTS = {
+  squat: ['agachamento', 'hack_squat', 'leg_press', 'smith_squat', 'agach_frontal', 'goblet', 'walking_lunge', 'afundos', 'bw_squat', 'pistol'],
+  quad2: ['leg_press', 'hack_squat', 'afundos', 'walking_lunge', 'smith_squat', 'agach_frontal', 'goblet', 'step_up', 'bw_lunge', 'pistol', 'bw_squat'],
+  quadIso: ['leg_ext', 'walking_lunge', 'step_up', 'goblet', 'afundos', 'bw_lunge', 'pistol'],
+  hinge: ['peso_morto', 'rdl', 'sumo_dl', 'rack_pull', 'good_morning', 'kb_swing', 'back_ext', 'glute_bridge', 'nordic', 'bw_glute_bridge'],
+  hingeLight: ['rdl', 'good_morning', 'hip_thrust', 'back_ext', 'kb_swing', 'glute_bridge', 'peso_morto', 'bw_glute_bridge', 'nordic'],
+  hamIso: ['leg_curl', 'seated_leg_curl', 'rdl', 'good_morning', 'back_ext', 'kb_swing', 'nordic'],
+  glute: ['hip_thrust', 'glute_bridge', 'cable_kickback', 'hip_abduction', 'step_up', 'walking_lunge', 'bw_glute_bridge', 'bw_lunge'],
+  calf: ['gemeos', 'standing_calf', 'seated_calf', 'bw_calf'],
+  hPush: ['supino', 'supino_halt', 'chest_press', 'smith_bench', 'dips', 'pushup'],
+  inclinePush: ['supino_incl_halt', 'supino_incl', 'incline_machine', 'smith_bench', 'landmine_press', 'pushup', 'pike_pushup'],
+  chestIso: ['peck_deck', 'cable_fly', 'db_fly', 'dips', 'pushup'],
+  vPush: ['press_militar', 'press_halt', 'machine_shoulder', 'arnold', 'landmine_press', 'push_press', 'pike_pushup'],
+  latRaise: ['elev_lateral', 'cable_lateral', 'upright_row', 'pike_pushup'],
+  rearDelt: ['face_pull', 'reverse_pec', 'rear_delt', 'inverted_row'],
+  vPull: ['elevacoes', 'puxada', 'chinup', 'close_pulldown', 'straight_arm', 'inverted_row'],
+  hPull: ['remada_barra', 'remada_polia', 'remada_halt', 'tbar_row', 'machine_row', 'pendlay', 'inverted_row'],
+  hPull2: ['remada_halt', 'machine_row', 'remada_polia', 'tbar_row', 'pendlay', 'remada_barra', 'inverted_row'],
+  traps: ['shrug', 'farmer_walk', 'upright_row'],
+  biceps: ['curl_barra', 'curl_halt', 'ez_curl', 'cable_curl', 'preacher', 'hammer', 'chinup'],
+  biceps2: ['hammer', 'incline_curl', 'preacher', 'cable_curl', 'concentration', 'curl_halt'],
+  triceps: ['triceps_polia', 'rope_pushdown', 'close_grip', 'dips', 'triceps_frances', 'db_overhead_ext', 'bench_dips', 'diamond_pushup'],
+  triceps2: ['overhead_ext', 'db_overhead_ext', 'triceps_frances', 'rope_pushdown', 'bench_dips', 'dips', 'diamond_pushup'],
+  forearm: ['wrist_curl', 'farmer_walk', 'hammer'],
+  core: ['abd_polia', 'machine_crunch', 'hanging_leg', 'decline_situp', 'russian_twist', 'crunch'],
+};
+// m = principal, a = acessório, i = isolamento
+const DAY_T = {
+  push: { name: 'Push', focus: 'Chest · Shoulders · Triceps', slots: [['hPush', 'm'], ['vPush', 'm'], ['inclinePush', 'a'], ['chestIso', 'i'], ['latRaise', 'i'], ['triceps', 'i'], ['triceps2', 'i']] },
+  pull: { name: 'Pull', focus: 'Back · Rear delts · Biceps', slots: [['vPull', 'm'], ['hPull', 'm'], ['hPull2', 'a'], ['rearDelt', 'i'], ['biceps', 'i'], ['biceps2', 'i'], ['traps', 'i']] },
+  legs: { name: 'Legs', focus: 'Quads · Hamstrings · Glutes · Calves', slots: [['squat', 'm'], ['hingeLight', 'm'], ['quad2', 'a'], ['hamIso', 'i'], ['glute', 'a'], ['calf', 'i'], ['core', 'i']] },
+  upper: { name: 'Upper', focus: 'Chest · Back · Shoulders · Arms', slots: [['hPush', 'm'], ['hPull', 'm'], ['vPush', 'a'], ['vPull', 'a'], ['latRaise', 'i'], ['biceps', 'i'], ['triceps', 'i']] },
+  lower: { name: 'Lower', focus: 'Quads · Hamstrings · Glutes · Core', slots: [['squat', 'm'], ['hinge', 'm'], ['quad2', 'a'], ['hamIso', 'i'], ['glute', 'a'], ['calf', 'i'], ['core', 'i']] },
+  full: { name: 'Full Body', focus: 'Whole body', slots: [['squat', 'm'], ['hPush', 'm'], ['hPull', 'm'], ['hingeLight', 'a'], ['vPush', 'a'], ['vPull', 'a'], ['core', 'i']] },
+  chest: { name: 'Chest', focus: 'Chest · Triceps', slots: [['hPush', 'm'], ['inclinePush', 'm'], ['chestIso', 'a'], ['hPush', 'a'], ['chestIso', 'i'], ['triceps', 'i'], ['core', 'i']] },
+  back: { name: 'Back', focus: 'Back · Traps', slots: [['vPull', 'm'], ['hPull', 'm'], ['hPull2', 'a'], ['vPull', 'a'], ['hinge', 'a'], ['traps', 'i'], ['rearDelt', 'i']] },
+  shoulders: { name: 'Shoulders', focus: 'Delts · Traps', slots: [['vPush', 'm'], ['latRaise', 'a'], ['rearDelt', 'i'], ['vPush', 'a'], ['latRaise', 'i'], ['traps', 'i'], ['core', 'i']] },
+  arms: { name: 'Arms', focus: 'Biceps · Triceps · Forearms', slots: [['biceps', 'a'], ['triceps', 'a'], ['biceps2', 'i'], ['triceps2', 'i'], ['biceps', 'i'], ['triceps', 'i'], ['forearm', 'i']] },
+  chestback: { name: 'Chest & Back', focus: 'Chest · Back', slots: [['hPush', 'm'], ['vPull', 'm'], ['inclinePush', 'a'], ['hPull', 'a'], ['chestIso', 'i'], ['hPull2', 'i'], ['core', 'i']] },
+  shoularms: { name: 'Shoulders & Arms', focus: 'Delts · Biceps · Triceps', slots: [['vPush', 'm'], ['latRaise', 'i'], ['biceps', 'a'], ['triceps', 'a'], ['rearDelt', 'i'], ['biceps2', 'i'], ['triceps2', 'i']] },
+};
+const SPLITS = {
+  fb2: { name: 'Full Body', desc: 'Whole body twice a week. Ideal for beginners or busy weeks.', days: [['full', 0], ['full', 1]] },
+  fb3: { name: 'Full Body', desc: 'Whole body 3× a week. The classic beginner programme.', days: [['full', 0], ['full', 1], ['full', 2]] },
+  ul4: { name: 'Upper / Lower', desc: 'Upper and lower body, each trained twice a week.', days: [['upper', 0], ['lower', 0], ['upper', 1], ['lower', 1]] },
+  ppl3: { name: 'Push / Pull / Legs', desc: 'Each muscle once a week. Simple and effective.', days: [['push', 0], ['pull', 0], ['legs', 0]] },
+  pplul5: { name: 'PPL + Upper / Lower', desc: 'Push, pull, legs, then an upper and a lower day.', days: [['push', 0], ['pull', 0], ['legs', 0], ['upper', 1], ['lower', 1]] },
+  ppl6: { name: 'Push / Pull / Legs', desc: 'Each muscle twice a week. For intermediate/advanced.', days: [['push', 0], ['pull', 0], ['legs', 0], ['push', 1], ['pull', 1], ['legs', 1]] },
+  arnold3: { name: 'Arnold Split', desc: 'Chest & back, shoulders & arms, legs.', days: [['chestback', 0], ['shoularms', 0], ['legs', 0]] },
+  arnold6: { name: 'Arnold Split', desc: 'The Arnold split twice a week. High volume.', days: [['chestback', 0], ['shoularms', 0], ['legs', 0], ['chestback', 1], ['shoularms', 1], ['legs', 1]] },
+  bro5: { name: 'Bro Split', desc: 'One muscle group per day: chest, back, shoulders, legs, arms.', days: [['chest', 0], ['back', 0], ['shoulders', 0], ['legs', 0], ['arms', 0]] },
+};
+const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const SCHEDULE = { 2: [0, 3], 3: [0, 2, 4], 4: [0, 1, 3, 4], 5: [0, 1, 2, 3, 4], 6: [0, 1, 2, 3, 4, 5] };
+const GOALS = {
+  hyp: { name: 'Hypertrophy', sub: 'Build muscle', m: [4, '6–8'], a: [3, '8–12'], i: [3, '12–15'], rest: 90 },
+  str: { name: 'Strength', sub: 'Lift heavier', m: [5, '3–5'], a: [3, '6–8'], i: [3, '8–12'], rest: 180 },
+  end: { name: 'Endurance', sub: 'Tone & condition', m: [3, '12–15'], a: [3, '15'], i: [2, '15–20'], rest: 60 },
+};
+const LENS = { 4: '~45 min', 5: '~60 min', 6: '~75 min', 7: '~90 min' };
+const todayIdx = () => (new Date().getDay() + 6) % 7;
+
+function buildDay(type, variant, gym, cfg) {
+  const used = new Set(), ex = [];
+  for (const [slot, role] of DAY_T[type].slots) {
+    if (ex.length >= cfg.len) break;
+    const av = SLOTS[slot].filter(id => canDo(id, gym) && !used.has(id));
+    if (!av.length) continue;
+    // A/B/C usam variações diferentes; nos exercícios principais só alterna entre as 2 melhores opções
+    const id = av[(role === 'm' ? variant % 2 : variant) % av.length];
+    used.add(id);
+    const g = GOALS[cfg.goal][role];
+    ex.push({ id, slot, role, sets: g[0], reps: g[1] });
+  }
+  return ex;
+}
+function generatePlan(cfg) {
+  const gym = new Set(state.gym || []), sp = SPLITS[cfg.split], sched = SCHEDULE[sp.days.length];
+  const days = sp.days.map(([type, v], i) => {
+    const multi = sp.days.filter(d => d[0] === type).length > 1;
+    return { name: DAY_T[type].name + (multi ? ' ' + 'ABC'[v] : ''), type, weekday: sched[i], ex: buildDay(type, v, gym, cfg) };
+  });
+  return { ...cfg, days, created: todayISO() };
+}
+function swapPlanEx(di, ei) {
+  const day = state.plan.days[di], e = day.ex[ei], gym = new Set(state.gym || []);
+  const others = new Set(day.ex.map(x => x.id)); others.delete(e.id);
+  const av = SLOTS[e.slot].filter(id => canDo(id, gym) && !others.has(id));
+  if (av.length < 2) return toast('No alternative with your equipment', 'bad');
+  e.id = av[(av.indexOf(e.id) + 1) % av.length]; save(); render(false);
+}
+function todayPlanDay() {
+  if (!state.plan) return null;
+  const t = todayIdx(), i = state.plan.days.findIndex(d => d.weekday === t);
+  if (i >= 0) return { i, day: state.plan.days[i], today: true };
+  const next = [...state.plan.days].sort((a, b) => ((a.weekday - t + 7) % 7) - ((b.weekday - t + 7) % 7))[0];
+  return { i: state.plan.days.indexOf(next), day: next, today: false };
+}
+function startPlanDay(di) {
+  const day = state.plan.days[di];
+  openEditor();
+  draft.name = day.name;
+  draft.exercises = day.ex.map(e => {
+    const last = baseline[e.id]?.last?.sets?.filter(s => num(s.r) > 0) || [];
+    const w = last.length ? Math.max(...last.map(s => num(s.w))) : '';
+    return { exId: e.id, plan: `${e.sets} × ${e.reps}`, sets: Array.from({ length: e.sets }, () => ({ w, r: '' })) };
+  });
+  renderEditor();
+}
+
+function planBuilder() {
+  const cfg = { split: 'ppl3', goal: 'hyp', len: 6, ...(state.planCfg || {}) };
+  const gym = new Set(state.gym || []);
+  const avail = Object.keys(REQ).filter(id => canDo(id, gym)).length;
+  return `
+  <section class="panel">
+    <div class="panel-title"><span>1 · MY GYM</span></div>
+    <p class="hint">Tap the equipment and machines you have access to.</p>
+    <div class="chips wrap">${Object.entries(EQUIP_PRESETS).map(([k, p]) => `<button class="chip" data-preset="${k}">${p.name}</button>`).join('')}<button class="chip" data-preset="none">Clear</button></div>
+    <div class="equip">${EQUIP.map(([k, l]) => `<button class="eq ${gym.has(k) ? 'on' : ''}" data-eq="${k}"><i></i>${l}</button>`).join('')}</div>
+    <p class="hint center">${avail ? `<b class="cyan">${avail}</b> exercises available with this equipment` : 'Bodyweight only: push-ups and core work. Add some equipment for a real plan.'}</p>
+  </section>
+
+  <section class="panel">
+    <div class="panel-title"><span>2 · WEEKLY SPLIT</span></div>
+    <div class="splits">${Object.entries(SPLITS).map(([k, s]) => `
+      <button class="split ${cfg.split === k ? 'on' : ''}" data-split="${k}">
+        <div class="split-top"><b>${s.name}</b><span class="freq">${s.days.length}× / WEEK</span></div>
+        <small>${s.desc}</small>
+        <div class="split-days">${s.days.map(([t, v]) => `<span>${DAY_T[t].name}${s.days.filter(d => d[0] === t).length > 1 ? ' ' + 'ABC'[v] : ''}</span>`).join('')}</div>
+      </button>`).join('')}</div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-title"><span>3 · GOAL & LENGTH</span></div>
+    <div class="goal-pick">${Object.entries(GOALS).map(([k, g]) => `<button class="split ${cfg.goal === k ? 'on' : ''}" data-goal="${k}"><b>${g.name}</b><small>${g.sub} · ${g.m[0]}×${g.m[1]}</small></button>`).join('')}</div>
+    <div class="field-lbl" style="margin-top:12px">Exercises per session</div>
+    <div class="chips seg">${Object.entries(LENS).map(([n, t]) => `<button class="chip ${+cfg.len === +n ? 'on' : ''}" data-len="${n}">${n} · ${t}</button>`).join('')}</div>
+    <button class="btn primary wide" data-act="genplan" style="margin-top:14px">${IC.bolt}<span>GENERATE PLAN</span></button>
+    ${state.plan ? '<button class="btn ghost wide" data-act="cancelplan">CANCEL</button>' : ''}
+  </section>`;
+}
+
+function planDisplay() {
+  const p = state.plan, sp = SPLITS[p.split], g = GOALS[p.goal], t = todayIdx();
+  const byDay = Object.fromEntries(p.days.map((d, i) => [d.weekday, i]));
+  return `
+  <section class="panel plan-head">
+    <div class="panel-title"><span>TRAINING PLAN</span></div>
+    <div class="plan-name">${sp.name}</div>
+    <div class="plan-meta"><span>${p.days.length}× / week</span><span>${g.name}</span><span>Rest ${g.rest}s</span><span>${LENS[p.len]}</span></div>
+    <div class="week">${WEEKDAYS.map((w, i) => `<div class="wd ${i === t ? 'today' : ''} ${byDay[i] !== undefined ? 'train' : ''}"><span>${w}</span><b>${byDay[i] !== undefined ? esc(p.days[byDay[i]].name) : 'Rest'}</b></div>`).join('')}</div>
+  </section>
+  ${p.days.map((d, di) => `
+  <section class="panel plan-day ${d.weekday === t ? 'is-today' : ''}">
+    <header>
+      <div><div class="w-date">${WEEKDAYS[d.weekday]}${d.weekday === t ? ' · TODAY' : ''}</div><h4>${esc(d.name)}</h4><small>${DAY_T[d.type].focus}</small></div>
+      <button class="btn sm primary" data-startday="${di}">START</button>
+    </header>
+    ${d.ex.length < 3 ? '<p class="hint">⚠ Few exercises available for this day with your equipment.</p>' : ''}
+    <ol class="plan-ex">${d.ex.map((e, ei) => `
+      <li class="r-${e.role}"><span class="n">${esc(getEx(e.id)?.name)}</span><span class="sr">${e.sets} × ${e.reps}</span>
+        <button class="icon-btn sm" data-swap="${di}:${ei}" aria-label="Swap exercise" title="Swap for another exercise">${IC.swap}</button></li>`).join('')}</ol>
+  </section>`).join('')}
+  <div class="btn-col">
+    <button class="btn" data-act="editplan">EDIT GYM & SPLIT</button>
+    <button class="btn danger" data-act="delplan">DELETE PLAN</button>
+  </div>`;
+}
+
 /* ---------- editor de treino ---------- */
 let draft = null, baseline = null;
 
@@ -994,7 +1233,7 @@ function exCard(e, ei) {
     <div class="ex-head">
       <div>
         <b>${esc(def?.name || '?')}</b>
-        <small>${esc(def?.group || '')}${def?.bw ? ' · bodyweight + added load' : ''}${def?.perHand ? ' · kg per dumbbell' : ''}</small>
+        ${e.plan ? `<span class="plan-tag">PLAN ${e.plan}</span>` : ''}<small>${esc(def?.group || '')}${def?.bw ? ' · bodyweight + added load' : ''}${def?.perHand ? ' · kg per dumbbell' : ''}</small>
       </div>
       <button class="icon-btn" data-delex="${ei}" aria-label="Remove exercise">${IC.trash}</button>
     </div>
@@ -1234,7 +1473,7 @@ function demoData() {
 
 /* ---------- eventos ---------- */
 document.addEventListener('click', async ev => {
-  const el = ev.target.closest('[data-tab],[data-act],[data-go],[data-edit],[data-addset],[data-delset],[data-delex],[data-pick],[data-copy],[data-filter],[data-delcustom],[data-muscle],[data-rest],[data-range],[data-metric],[data-progex]');
+  const el = ev.target.closest('[data-tab],[data-act],[data-go],[data-edit],[data-addset],[data-delset],[data-delex],[data-pick],[data-copy],[data-filter],[data-delcustom],[data-muscle],[data-rest],[data-range],[data-metric],[data-progex],[data-wview],[data-eq],[data-preset],[data-split],[data-goal],[data-len],[data-swap],[data-startday]');
   if (!el) {
     if (ev.target.id === 'modal' && !$(".sys-window.k-warn")) closeModal();
     return;
@@ -1247,6 +1486,15 @@ document.addEventListener('click', async ev => {
     rest.end += v * 1000; rest.total = Math.max(1, rest.total + v); return tickRest();
   }
   if (d.go) return go(d.go);
+  if (d.wview) { state.wView = d.wview; save(); return state.tab === 'workouts' ? render(false) : go('workouts'); }
+  if (d.eq) { const g = new Set(state.gym || []); g.has(d.eq) ? g.delete(d.eq) : g.add(d.eq); state.gym = [...g]; save(); return render(false); }
+  if (d.preset) { state.gym = d.preset === 'none' ? [] : [...EQUIP_PRESETS[d.preset].eq]; save(); return render(false); }
+  if (d.split || d.goal || d.len) {
+    state.planCfg = { split: 'ppl3', goal: 'hyp', len: 6, ...(state.planCfg || {}), ...(d.split ? { split: d.split } : {}), ...(d.goal ? { goal: d.goal } : {}), ...(d.len ? { len: +d.len } : {}) };
+    save(); return render(false);
+  }
+  if (d.swap) { const [di, ei] = d.swap.split(':').map(Number); return swapPlanEx(di, ei); }
+  if (d.startday !== undefined) return startPlanDay(+d.startday);
   if (d.range) { state.range = d.range; save(); return render(false); }
   if (d.metric) { state.metric = d.metric; save(); return render(false); }
   if (d.progex) { state.progEx = d.progex; save(); return go('progress'); }
@@ -1281,6 +1529,19 @@ document.addEventListener('click', async ev => {
     case 'save': return saveDraft();
     case 'pick': return openPicker();
     case 'mclose': return closeModal();
+    case 'genplan': {
+      if (!(state.gym || []).length) return toast('Select your gym equipment first', 'bad');
+      const cfg = { split: 'ppl3', goal: 'hyp', len: 6, ...(state.planCfg || {}) };
+      state.plan = generatePlan(cfg); state.planEdit = false; save(); render(false); window.scrollTo({ top: 0 });
+      const sp = SPLITS[cfg.split];
+      queueAlerts([{ kind: 'quest', html: `<p class="sys-big">NEW QUEST UNLOCKED</p><p>Training plan: <b>${sp.name}</b></p><p class="muted">${state.plan.days.map(d => `${WEEKDAYS[d.weekday]} · ${esc(d.name)}`).join('<br>')}</p><p class="reward">Complete your sessions to earn <b>EXP</b></p>` }]);
+      return;
+    }
+    case 'editplan': state.planEdit = true; save(); render(false); return window.scrollTo({ top: 0 });
+    case 'cancelplan': state.planEdit = false; save(); return render(false);
+    case 'delplan':
+      if (await sysConfirm('Delete your training plan? Your workout history is kept.', 'DELETE')) { state.plan = null; state.planEdit = false; save(); render(false); }
+      return;
     case 'cleargoal': delete state.goals[el.dataset.ex]; save(); render(false); return toast('Target removed');
     case 'delete':
       if (await sysConfirm('Delete this workout? EXP and records will be recalculated.', 'DELETE')) {
@@ -1364,7 +1625,7 @@ document.addEventListener('change', ev => {
   file.text().then(txt => {
     const d = JSON.parse(txt);
     if (!Array.isArray(d.workouts)) throw new Error();
-    state = migrate({ ...defaultState(), profile: { ...defaultState().profile, ...d.profile }, workouts: d.workouts, custom: d.custom || [], goals: d.goals || {}, bwLog: d.bwLog || [], tab: 'status' });
+    state = migrate({ ...defaultState(), profile: { ...defaultState().profile, ...d.profile }, workouts: d.workouts, custom: d.custom || [], goals: d.goals || {}, bwLog: d.bwLog || [], gym: d.gym || [], planCfg: d.planCfg, plan: d.plan || null, tab: 'status' });
     save(); render(); toast('Backup imported', 'ok');
   }).catch(() => toast('Invalid file', 'bad'));
 });

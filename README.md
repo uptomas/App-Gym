@@ -16,6 +16,11 @@ A gamified gym tracker: log your workouts, break personal records and climb the 
   - Shows the 1RM you need for the next division.
   - Male and female strength standards (choose in Profile).
 - **RPG progression**: EXP per workout (volume + PR bonus), levels, titles, stats (Strength, Vitality, Endurance, Discipline), daily and weekly quests, weekly training streak.
+- **Training plan generator** (Workouts → Training plan):
+  - Tick the equipment and machines your gym has (presets: full gym, barbell gym, home dumbbells, bodyweight).
+  - Pick a weekly split: Full Body (2×/3×), Upper/Lower, Push/Pull/Legs (3×/6×), PPL + Upper/Lower, Arnold split (3×/6×), Bro split.
+  - Pick a goal (hypertrophy, strength, endurance) and session length; the plan uses only exercises you can do with your equipment, with sets × reps and a weekly schedule.
+  - Swap any exercise for an alternative, see today's session on the Status screen and start it with one tap (pre-filled with your last weights).
 - **Progress tab**: interactive weight-over-time charts (drag to read any point) with 1M/3M/6M/1Y/All ranges:
   - **Bodyweight**: log weigh-ins, set a goal weight (dashed goal line + progress bar).
   - **Load per exercise**: top set, estimated 1RM, best set volume or session volume, with your target line.

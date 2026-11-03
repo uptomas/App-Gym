@@ -477,3 +477,60 @@ input[type="date"] { color-scheme: dark; }
 .goal-list li .xp-row b { color: #fff; }
 .goal-list li.done { border-color: rgba(255, 207, 74, .5); }
 .rec .btn.wide { margin-top: 10px; }
+
+/* ---------- planos de treino ---------- */
+.hint.center { text-align: center; margin-top: 12px; }
+.equip { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 12px; }
+.eq { display: flex; align-items: center; gap: 8px; padding: 9px 10px; min-height: 42px; text-align: left; font-size: 14px; font-weight: 600; line-height: 1.15;
+  color: var(--muted); background: rgba(8, 22, 50, .6); border: 1px solid rgba(80, 160, 255, .18); border-radius: 4px; cursor: pointer; transition: .15s; }
+.eq i { flex: none; width: 14px; height: 14px; border: 1.5px solid rgba(120, 180, 255, .5); transform: rotate(45deg); transition: .15s; }
+.eq.on { color: #fff; border-color: rgba(95, 211, 255, .6); background: rgba(30, 90, 190, .25); box-shadow: 0 0 12px rgba(95, 211, 255, .2); }
+.eq.on i { background: var(--cyan); border-color: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
+.splits, .goal-pick { display: grid; gap: 8px; }
+.goal-pick { grid-template-columns: repeat(3, 1fr); }
+.split { display: grid; gap: 4px; text-align: left; padding: 11px 12px; border-radius: 4px; cursor: pointer; color: var(--text);
+  background: rgba(8, 22, 50, .6); border: 1px solid rgba(80, 160, 255, .18); transition: .15s; }
+.split b { font-size: 16px; color: #fff; }
+.split small { font-size: 13px; color: var(--muted); }
+.split.on { border-color: var(--cyan); background: rgba(30, 90, 190, .25); box-shadow: 0 0 16px rgba(95, 211, 255, .3), inset 0 0 18px rgba(95, 211, 255, .08); }
+.goal-pick .split { text-align: center; padding: 10px 6px; }
+.goal-pick .split b { font-size: 14px; }
+.goal-pick .split small { font-size: 11.5px; }
+.split-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.freq { font-family: var(--hd); font-size: 9px; letter-spacing: .12em; color: var(--cyan); padding: 2px 6px; border: 1px solid rgba(95, 211, 255, .4); flex: none; }
+.split-days { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.split-days span { font-size: 11.5px; padding: 1px 7px; border-radius: 999px; background: rgba(40, 90, 180, .25); color: #b5c8ea; }
+.plan-name { text-align: center; font-family: var(--hd); font-weight: 900; font-size: 20px; letter-spacing: .06em; color: #fff; text-shadow: 0 0 14px rgba(95, 211, 255, .8); }
+.plan-meta { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 8px 0 14px; }
+.plan-meta span { font-size: 12.5px; padding: 2px 9px; border: 1px solid var(--line-soft); border-radius: 999px; color: #b5c8ea; }
+.week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.wd { display: grid; gap: 3px; justify-items: center; padding: 7px 2px; border-radius: 4px; background: rgba(8, 22, 50, .5); border: 1px solid rgba(80, 160, 255, .12); min-width: 0; }
+.wd span { font-family: var(--hd); font-size: 8.5px; letter-spacing: .1em; color: var(--muted); }
+.wd b { font-size: 10.5px; line-height: 1.1; text-align: center; color: var(--muted); font-weight: 600; overflow-wrap: anywhere; }
+.wd.train { border-color: rgba(95, 211, 255, .35); background: rgba(30, 90, 190, .2); }
+.wd.train b { color: #fff; }
+.wd.today { box-shadow: 0 0 0 1.5px var(--gold), 0 0 14px rgba(255, 207, 74, .35); }
+.wd.today span { color: var(--gold); }
+.plan-day header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+.plan-day h4 { margin: 2px 0 0; font-size: 19px; color: #fff; }
+.plan-day header small { color: var(--muted); font-size: 13px; }
+.plan-day.is-today { border-color: rgba(255, 207, 74, .5); }
+.plan-day.is-today .w-date { color: var(--gold); }
+.plan-ex { list-style: none; counter-reset: ex; padding: 0; margin: 0; display: grid; gap: 4px; }
+.plan-ex li { counter-increment: ex; display: grid; grid-template-columns: 22px 1fr auto 32px; align-items: center; gap: 8px; padding: 6px 4px 6px 6px; border-radius: 4px; background: rgba(20, 50, 110, .14); }
+.plan-ex li::before { content: counter(ex); font-family: var(--hd); font-size: 11px; color: var(--muted); text-align: center; }
+.plan-ex li.r-m { border-left: 2px solid var(--cyan); }
+.plan-ex li.r-m::before { color: var(--cyan); }
+.plan-ex .n { font-size: 15px; min-width: 0; }
+.plan-ex .sr { font-family: var(--hd); font-size: 12px; color: var(--cyan2); white-space: nowrap; }
+.today-plan { display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin-bottom: 10px; border-radius: 4px; border: 1px solid rgba(255, 207, 74, .45); background: rgba(255, 207, 74, .06); }
+.today-plan div { display: grid; gap: 2px; }
+.today-plan span { font-family: var(--hd); font-size: 9.5px; letter-spacing: .18em; color: var(--gold); }
+.today-plan b { font-size: 19px; color: #fff; }
+.today-plan b small { font-family: var(--hd); font-size: 10px; color: var(--muted); }
+.today-plan small { color: var(--muted); font-size: 13px; }
+.today-plan.rest { border-color: var(--line-soft); background: rgba(20, 50, 110, .15); }
+.today-plan.rest span { color: var(--muted); }
+.quest .btn.wide + .btn.wide { margin-top: 8px; }
+.plan-tag { display: inline-block; margin: 2px 0; font-family: var(--hd); font-size: 9px; letter-spacing: .1em; padding: 1px 6px; color: var(--cyan); border: 1px solid rgba(95, 211, 255, .45); }
+@media (max-width: 380px) { .equip { grid-template-columns: 1fr; } .goal-pick { grid-template-columns: 1fr; } }
