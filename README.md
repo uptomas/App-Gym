@@ -30,6 +30,7 @@ A gamified gym tracker: log your workouts, break personal records and climb the 
 - **Records per exercise**: heaviest weight, best set volume, estimated 1RM, progress chart and history.
 - **Rest timer** that starts automatically when you log the reps of a set (±15 s, vibrates at the end; duration set in Profile).
 - Custom exercises, JSON backup export/import, sample data.
+- **Online mode (optional, Supabase)**: accounts (Google or email), automatic cloud backup/sync across devices, friends by @username or invite link, friends and global leaderboards (by rank or level), player cards with muscle map and top lifts. Workouts and bodyweight stay private. Setup: [SUPABASE_SETUP.md](SUPABASE_SETUP.md).
 - PWA: works offline and can be installed on your phone ("Add to Home Screen").
 
 ## Run
@@ -50,5 +51,8 @@ To use it on your phone, publish it with **GitHub Pages** (Settings → Pages �
 - `index.html`: structure
 - `styles.css`: visual theme
 - `app.js`: logic (workouts, PRs, EXP, ranking, SVG emblems, muscle map)
+- `social.js`: online mode (auth, sync, friends, leaderboards); `config.js`: Supabase URL + anon key
+- `supabase/schema.sql`: database tables and row level security
+- `vendor/`: supabase-js 2.45.4 (MIT)
 - `sw.js` and `manifest.webmanifest`: offline support / install
 - `apple-touch-icon.png`, `icon-*.png`, `favicon-32.png`: app icons

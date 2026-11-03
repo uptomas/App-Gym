@@ -228,8 +228,19 @@ function migrate(st) { // dados antigos em português
   st.goals = Object.fromEntries(Object.entries(st.goals || {}).filter(([id]) => ids.has(id)));
   return st;
 }
-function save() { try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch { toast('Could not save on this device', 'bad'); } }
+// chaves só de interface / sincronização: não vão para a nuvem
+const LOCAL_KEYS = ['tab', 'selMuscle', 'recFilter', 'range', 'metric', 'progEx', 'wView', 'planEdit', 'rankView', 'lbSort', 'updatedAt', 'syncedAt', 'cloudUser', 'pendingInvite'];
+function syncData(st = state) { const o = { ...st }; for (const k of LOCAL_KEYS) delete o[k]; return o; }
+let lastSyncJson = null;
+function saveLocal() { try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch { toast('Could not save on this device', 'bad'); } }
+function save() {
+  const j = JSON.stringify(syncData());
+  if (lastSyncJson !== null && j !== lastSyncJson) { state.updatedAt = Date.now(); window.onDataChanged?.(); }
+  lastSyncJson = j;
+  saveLocal();
+}
 let state = load();
+lastSyncJson = JSON.stringify(syncData());
 
 /* ---------- motor: recordes, XP, ranking ---------- */
 function levelFromXP(xp) {
@@ -565,6 +576,13 @@ const VIEWS = {
   },
 
   ranking() {
+    const v = ['friends', 'global'].includes(state.rankView) ? state.rankView : 'me';
+    const seg = `<div class="chips seg range"><button class="chip ${v === 'me' ? 'on' : ''}" data-rankview="me">ME</button><button class="chip ${v === 'friends' ? 'on' : ''}" data-rankview="friends">FRIENDS</button><button class="chip ${v === 'global' ? 'on' : ''}" data-rankview="global">GLOBAL</button></div>`;
+    if (v !== 'me') return seg + (window.Social ? Social.leaderboardView(v) : '<section class="panel"><p class="empty">Online features failed to load. Check your connection.</p></section>');
+    return seg + VIEWS.rankingMe();
+  },
+
+  rankingMe() {
     const rk = RANKS[C.rank], t = TIERS[rk.tier];
     const next = RANKS[C.rank + 1];
     const into = C.mmr - rk.min;
@@ -794,7 +812,7 @@ const VIEWS = {
 
   profile() {
     const p = state.profile;
-    return `
+    return `${window.Social ? Social.accountPanel() : ''}
     <section class="panel">
       <div class="panel-title"><span>HUNTER PROFILE</span></div>
       <form id="profile-form" class="form">
@@ -1476,9 +1494,9 @@ function demoData() {
 
 /* ---------- eventos ---------- */
 document.addEventListener('click', async ev => {
-  const el = ev.target.closest('[data-tab],[data-act],[data-go],[data-edit],[data-addset],[data-delset],[data-delex],[data-pick],[data-copy],[data-filter],[data-delcustom],[data-muscle],[data-rest],[data-range],[data-metric],[data-progex],[data-wview],[data-eq],[data-preset],[data-split],[data-goal],[data-len],[data-swap],[data-startday]');
+  const el = ev.target.closest('[data-tab],[data-act],[data-go],[data-edit],[data-addset],[data-delset],[data-delex],[data-pick],[data-copy],[data-filter],[data-delcustom],[data-muscle],[data-rest],[data-range],[data-metric],[data-progex],[data-wview],[data-eq],[data-preset],[data-split],[data-goal],[data-len],[data-swap],[data-startday],[data-rankview]');
   if (!el) {
-    if (ev.target.id === 'modal' && !$(".sys-window.k-warn")) closeModal();
+    if (ev.target.id === 'modal' && !$(".sys-window.k-warn, .sys-window.no-dismiss")) closeModal();
     return;
   }
   const d = el.dataset;
@@ -1489,6 +1507,7 @@ document.addEventListener('click', async ev => {
     rest.end += v * 1000; rest.total = Math.max(1, rest.total + v); return tickRest();
   }
   if (d.go) return go(d.go);
+  if (d.rankview) { state.rankView = d.rankview; save(); return render(false); }
   if (d.wview) { state.wView = d.wview; save(); return state.tab === 'workouts' ? render(false) : go('workouts'); }
   if (d.eq) { const g = new Set(state.gym || []); g.has(d.eq) ? g.delete(d.eq) : g.add(d.eq); state.gym = [...g]; save(); return render(false); }
   if (d.preset) { state.gym = d.preset === 'none' ? [] : [...EQUIP_PRESETS[d.preset].eq]; save(); return render(false); }
