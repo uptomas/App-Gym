@@ -223,6 +223,9 @@ function migrate(st) { // dados antigos em português
   if (st.recFilter && st.recFilter !== 'All' && !GROUPS.includes(st.recFilter)) st.recFilter = GROUP_PT[st.recFilter] || 'All';
   const tabs = { treinos: 'workouts', recordes: 'records', perfil: 'profile' };
   st.tab = tabs[st.tab] || st.tab;
+  // limpar alvos de exercícios que já não existem (ex.: personalizados apagados)
+  const ids = new Set([...Object.keys(LIB_MAP), ...st.custom.map(c => c.id)]);
+  st.goals = Object.fromEntries(Object.entries(st.goals || {}).filter(([id]) => ids.has(id)));
   return st;
 }
 function save() { try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch { toast('Could not save on this device', 'bad'); } }
@@ -1521,7 +1524,10 @@ document.addEventListener('click', async ev => {
   if (d.delex !== undefined) { draft.exercises.splice(+d.delex, 1); return renderEditor(); }
   if (d.delcustom) {
     if (state.workouts.some(w => w.exercises.some(e => e.exId === d.delcustom))) return toast('This exercise is used in workouts', 'bad');
-    state.custom = state.custom.filter(c => c.id !== d.delcustom); save(); return render();
+    state.custom = state.custom.filter(c => c.id !== d.delcustom);
+    if (state.goals) delete state.goals[d.delcustom]; // o alvo desse exercício deixa de fazer sentido
+    if (state.progEx === d.delcustom) state.progEx = null;
+    save(); return render();
   }
   switch (d.act) {
     case 'new': return openEditor();
