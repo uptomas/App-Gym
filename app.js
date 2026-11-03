@@ -97,6 +97,22 @@ const LIB = [
 ].map(([id, name, group, reg, bw, std, ph]) => ({ id, name, group, region: reg === 'l' ? 'lower' : 'upper', bw: !!bw, std, perHand: !!ph }));
 const LIB_MAP = Object.fromEntries(LIB.map(e => [e.id, e]));
 
+/* músculos (estilo mapa muscular) — main: conta para o rank geral */
+const MUSCLES = [
+  { key: 'chest', name: 'Peito', main: 1 }, { key: 'back', name: 'Costas', main: 1 }, { key: 'shoulders', name: 'Ombros', main: 1 },
+  { key: 'biceps', name: 'Bíceps', main: 1 }, { key: 'triceps', name: 'Tríceps', main: 1 }, { key: 'quads', name: 'Quadríceps', main: 1 },
+  { key: 'hamstrings', name: 'Posteriores', main: 1 }, { key: 'glutes', name: 'Glúteos', main: 1 },
+  { key: 'calves', name: 'Gémeos', main: 0 }, { key: 'abs', name: 'Abdominais', main: 0 },
+];
+const MUSCLE_OF = {
+  supino: ['chest'], supino_incl: ['chest'], supino_halt: ['chest'], supino_incl_halt: ['chest'], peck_deck: ['chest'], dips: ['chest', 'triceps'],
+  peso_morto: ['back', 'hamstrings', 'glutes'], remada_barra: ['back'], remada_halt: ['back'], elevacoes: ['back', 'biceps'], puxada: ['back'], remada_polia: ['back'],
+  agachamento: ['quads', 'glutes'], agach_frontal: ['quads'], leg_press: ['quads'], rdl: ['hamstrings', 'glutes'], hip_thrust: ['glutes'], afundos: ['quads', 'glutes'],
+  leg_ext: ['quads'], leg_curl: ['hamstrings'], gemeos: ['calves'],
+  press_militar: ['shoulders'], press_halt: ['shoulders'], elev_lateral: ['shoulders'], face_pull: ['shoulders'],
+  curl_barra: ['biceps'], curl_halt: ['biceps'], triceps_polia: ['triceps'], triceps_frances: ['triceps'], abd_polia: ['abs'],
+};
+
 function getEx(id) { return LIB_MAP[id] || state.custom.find(c => c.id === id); }
 function stdFor(def, sex) {
   if (!def.std) return null;
@@ -109,7 +125,7 @@ function stdFor(def, sex) {
 /* ---------- estado ---------- */
 const LS_KEY = 'ironsystem.v1';
 function defaultState() {
-  return { profile: { name: 'Caçador', bw: 75, sex: 'm' }, workouts: [], custom: [], tab: 'status' };
+  return { profile: { name: 'Caçador', bw: 75, sex: 'm', rest: 90 }, workouts: [], custom: [], tab: 'status' };
 }
 function load() {
   try {
@@ -191,8 +207,16 @@ function compute(st = state, excludeId = null) {
   }
 
   const ranked = Object.values(ex).filter(s => s.bestMMR !== null).sort((a, b) => b.bestMMR - a.bestMMR);
-  const top = ranked.slice(0, 5);
-  const mmr = top.length ? top.reduce((a, s) => a + s.bestMMR, 0) / top.length : 0;
+  // rank por músculo = melhor exercício que trabalha esse músculo
+  const muscles = Object.fromEntries(MUSCLES.map(m => [m.key, { ...m, mmr: null, best: null }]));
+  for (const s of ranked) for (const mk of (MUSCLE_OF[s.id] || [])) {
+    const m = muscles[mk];
+    if (m.mmr === null || s.bestMMR > m.mmr) { m.mmr = s.bestMMR; m.best = s.id; }
+  }
+  // rank geral = média dos 8 músculos principais (os que não treinas contam como 0 → premeia o equilíbrio)
+  const mainM = MUSCLES.filter(m => m.main).map(m => muscles[m.key]);
+  const musclesRanked = mainM.filter(m => m.mmr !== null).length;
+  const mmr = ranked.length ? mainM.reduce((a, m) => a + (m.mmr || 0), 0) / mainM.length : 0;
 
   const weeks = new Set(ws.map(w => weekKey(w.date)));
   let streak = 0; const cur = new Date(weekKey(todayISO()) + 'T12:00:00');
@@ -205,7 +229,7 @@ function compute(st = state, excludeId = null) {
 
   return {
     ex, prFlags, prList, perWorkout, xp, level: lv, totalVol, totalSets, totalReps,
-    ranked, mmr, rank: rankIdx(mmr), placement: ranked.length < 3, streak, last30, thisWeek,
+    ranked, muscles, musclesRanked, mmr, rank: rankIdx(mmr), placement: musclesRanked < 4, streak, last30, thisWeek,
     trainedToday: ws.some(w => w.date === t), count: ws.length,
     stats: {
       FOR: 10 + Math.round(mmr / 8),
@@ -259,6 +283,52 @@ function emblem(idx, size = 64, cls = '') {
   return s + '</svg>';
 }
 
+/* ---------- mapa muscular (frente + costas) ---------- */
+const BODY_COMMON = [
+  [null, [[92, 54], [108, 54], [110, 70], [90, 70]], 1],
+  [null, [[49, 142], [64, 144], [60, 188], [48, 186], [44, 164]]],
+  [null, [[46, 190], [60, 190], [58, 206], [48, 206]]],
+  [null, [[84, 270], [96, 264], [95, 282], [77, 282]]],
+  [null, [[79, 350], [92, 350], [95, 364], [75, 364]]],
+  ['shoulders', [[60, 74], [78, 66], [80, 84], [68, 100], [54, 94]]],
+];
+const BODY_FRONT = [
+  [null, [[76, 160], [100, 182], [124, 160], [126, 186], [100, 194], [74, 186]], 1],
+  [null, [[73, 106], [85, 113], [87, 168], [77, 160], [72, 132]]],
+  ['chest', [[81, 72], [98, 75], [98, 108], [84, 111], [71, 102], [76, 86]]],
+  ['biceps', [[54, 98], [67, 104], [65, 140], [52, 138], [49, 118]]],
+  ['abs', [[87, 114], [113, 114], [112, 170], [100, 180], [88, 170]], 1],
+  ['quads', [[77, 186], [98, 192], [96, 262], [85, 268], [74, 252], [71, 212]]],
+  ['calves', [[77, 284], [93, 284], [90, 346], [81, 348], [75, 320]]],
+];
+const BODY_BACK = [
+  ['back', [[84, 58], [100, 54], [116, 58], [127, 72], [112, 84], [100, 100], [88, 84], [73, 72]], 1],
+  ['back', [[72, 82], [88, 88], [99, 104], [99, 140], [86, 148], [75, 122], [70, 98]]],
+  ['back', [[87, 150], [100, 143], [113, 150], [111, 168], [89, 168]], 1],
+  ['triceps', [[54, 98], [67, 102], [66, 138], [53, 140], [49, 118]]],
+  ['glutes', [[76, 171], [99, 174], [99, 208], [85, 212], [73, 196]]],
+  ['hamstrings', [[75, 214], [97, 214], [94, 266], [83, 270], [73, 246]]],
+  ['calves', [[75, 284], [94, 284], [93, 326], [85, 346], [76, 326]]],
+];
+function bodyMap(muscles, sel) {
+  const poly = (pts, dx) => pts.map(([x, y]) => `${x + dx},${y}`).join(' ');
+  const mir = pts => pts.map(([x, y]) => [200 - x, y]);
+  const draw = (shapes, dx) => shapes.map(([key, pts, center]) => {
+    let attrs;
+    if (!key) attrs = 'class="bm-n"';
+    else {
+      const m = muscles[key], ri = m.mmr !== null ? rankIdx(m.mmr) : null, t = ri !== null ? TIERS[RANKS[ri].tier] : null;
+      attrs = `class="bm-m ${t ? 'on' : ''} ${sel === key ? 'sel' : ''}" data-muscle="${key}" style="${t ? `--f:${t.glow};--s:${t.c1}` : ''}"`;
+    }
+    return `<polygon ${attrs} points="${poly(pts, dx)}"/>` + (center ? '' : `<polygon ${attrs} points="${poly(mir(pts), dx)}"/>`);
+  }).join('');
+  return `<svg class="bodymap" viewBox="0 0 420 372" role="img" aria-label="Mapa muscular">
+    <circle class="bm-n" cx="100" cy="34" r="17"/><circle class="bm-n" cx="320" cy="34" r="17"/>
+    ${draw([...BODY_COMMON, ...BODY_FRONT], 0)}${draw([...BODY_COMMON, ...BODY_BACK], 220)}
+    <text x="100" y="371" class="bm-lbl">FRENTE</text><text x="320" y="371" class="bm-lbl">COSTAS</text>
+  </svg>`;
+}
+
 /* ---------- ícones ---------- */
 const IC = {
   plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
@@ -276,13 +346,13 @@ const prBadge = (type, small = false) => type === 'w'
 
 /* ---------- render ---------- */
 let C = compute();
-function render() {
+function render(anim = true) {
   C = compute();
   $$('.tab').forEach(b => b.classList.toggle('active', b.dataset.tab === state.tab));
   $('#topchip').innerHTML = `${emblem(C.count ? C.rank : null, 26)}<span>LV.<b>${C.level.lvl}</b></span>`;
   const v = $('#view');
   v.innerHTML = VIEWS[state.tab]();
-  v.classList.remove('enter'); void v.offsetWidth; v.classList.add('enter');
+  v.classList.remove('enter'); if (anim) { void v.offsetWidth; v.classList.add('enter'); }
 }
 function go(tab) { state.tab = tab; save(); render(); window.scrollTo({ top: 0 }); }
 
@@ -397,10 +467,11 @@ const VIEWS = {
         let need = ratio * bw; if (def.bw) need -= bw;
         target = `<div class="target">Próximo: <b style="color:${TIERS[nx.tier].glow}">${nx.name}</b> → 1RM ${def.bw ? '+' : ''}${fmtKg(Math.ceil(need * 2) / 2)}${def.perHand ? ' /halter' : ''}</div>`;
       }
-      return `<li class="${i < 5 ? 'counts' : ''}">
+      const bestFor = Object.values(C.muscles).filter(m => m.best === s.id);
+      return `<li class="${bestFor.length ? 'counts' : ''}">
         ${emblem(ri, 46)}
         <div class="rx">
-          <div class="rx-top"><b>${esc(def.name)}</b>${i < 5 ? '<span class="tag">TOP 5</span>' : ''}</div>
+          <div class="rx-top"><b>${esc(def.name)}</b>${bestFor.map(m => `<span class="tag">${m.name.toUpperCase()}</span>`).join('')}</div>
           <div class="rx-sub"><span style="color:${TIERS[RANKS[ri].tier].glow}">${RANKS[ri].name}</span> · ${fmt(s.bestRatio, 2)}× PC · 1RM est. ${fmtKg(def.bw ? s.bestE1 - bw : s.bestE1)}${def.bw ? ' extra' : ''}</div>
           ${target}
         </div>
@@ -410,7 +481,7 @@ const VIEWS = {
     return `
     <section class="panel rank-hero tier-bg-${t.key}" style="--glow:${C.count ? t.glow : '#3a5687'}">
       <div class="panel-title"><span>RANKING DE FORÇA</span></div>
-      ${C.count && C.ranked.length && C.placement ? `<div class="placement">EM QUALIFICAÇÃO · ${C.ranked.length}/3 exercícios com rank</div>` : ''}
+      ${C.count && C.ranked.length && C.placement ? `<div class="placement">EM QUALIFICAÇÃO · ${C.musclesRanked}/4 músculos com rank</div>` : ''}
       <div class="hero-emblem">${emblem(C.ranked.length ? C.rank : null, 170, 'float')}</div>
       <div class="hero-name" style="color:${C.ranked.length ? t.glow : 'var(--muted)'}">${C.ranked.length ? rk.name : 'SEM RANK'}</div>
       <div class="hero-mmr"><b>${fmt(C.mmr, 0)}</b> MMR</div>
@@ -422,12 +493,25 @@ const VIEWS = {
     </section>
 
     <section class="panel">
+      <div class="panel-title"><span>MAPA MUSCULAR</span></div>
+      ${bodyMap(C.muscles, state.selMuscle)}
+      <ul class="muscle-list">${MUSCLES.map(m => {
+        const mm = C.muscles[m.key], ri = mm.mmr !== null ? rankIdx(mm.mmr) : null;
+        return `<li class="${state.selMuscle === m.key ? 'sel' : ''} ${ri === null ? 'off' : ''}" data-muscle="${m.key}">
+          ${emblem(ri, 34)}
+          <div><b>${m.name}${m.main ? '' : ' <small>extra</small>'}</b><span>${ri === null ? 'Por treinar' : `<i style="color:${TIERS[RANKS[ri].tier].glow}">${RANKS[ri].name}</i> · ${esc(getEx(mm.best).name)}`}</span></div>
+        </li>`;
+      }).join('')}</ul>
+      ${C.ranked.length && C.musclesRanked < 8 ? `<p class="hint">⚠ ${8 - C.musclesRanked} músculo(s) principal(is) por treinar contam como 0 no rank geral. Treina o corpo todo para subir.</p>` : ''}
+    </section>
+
+    <section class="panel">
       <div class="panel-title"><span>RANK POR EXERCÍCIO</span></div>
       ${exRows ? `<ul class="rank-list">${exRows}</ul>` : '<p class="empty">Nenhum exercício com rank ainda.</p>'}
       <details class="how">
         <summary>Como funciona o ranking?</summary>
         <p>Para cada exercício o Sistema calcula o teu <b>1RM estimado</b> (fórmula de Epley) e divide pelo teu <b>peso corporal</b> nesse treino. Essa razão é comparada com normas de força (iniciante → elite) e convertida em MMR.</p>
-        <p>O teu rank geral é a <b>média dos teus 5 melhores exercícios</b>. Precisas de pelo menos 3 exercícios com rank para saíres da qualificação. Em exercícios de peso corporal (elevações, paralelas) conta o teu peso + carga extra.</p>
+        <p>Cada <b>músculo</b> fica com o rank do teu melhor exercício que o trabalha (ex.: o Peito usa o melhor entre supinos, peck deck e paralelas).</p><p>O teu <b>rank geral</b> é a média dos 8 músculos principais (peito, costas, ombros, bíceps, tríceps, quadríceps, posteriores e glúteos). Músculos por treinar contam como 0, por isso um físico equilibrado sobe mais. Gémeos e abdominais aparecem no mapa mas não contam. Precisas de 4 músculos com rank para saíres da qualificação.</p><p>Em exercícios de peso corporal (elevações, paralelas) conta o teu peso + carga extra.</p>
         <p>Iniciante ≈ Prata · Novato ≈ Ouro · Intermédio ≈ Platina · Avançado ≈ Campeão · Elite ≈ Grande Campeão.</p>
       </details>
     </section>
@@ -486,6 +570,7 @@ const VIEWS = {
       <form id="profile-form" class="form">
         <label>Nome<input name="name" value="${esc(p.name)}" maxlength="24" autocomplete="off"></label>
         <label>Peso corporal (kg)<input name="bw" value="${esc(p.bw)}" inputmode="decimal"></label>
+        <label>Descanso entre séries (segundos)<input name="rest" value="${esc(p.rest || 90)}" inputmode="numeric"></label>
         <label>Normas de força
           <select name="sex"><option value="m" ${p.sex !== 'f' ? 'selected' : ''}>Masculinas</option><option value="f" ${p.sex === 'f' ? 'selected' : ''}>Femininas</option></select>
         </label>
@@ -554,6 +639,7 @@ function openEditor(id = null) {
   document.body.classList.add('locked');
 }
 function closeEditor() {
+  stopRest();
   const sh = $('#sheet'); sh.classList.remove('open');
   setTimeout(() => { sh.hidden = true; sh.innerHTML = ''; }, 250);
   document.body.classList.remove('locked');
@@ -642,6 +728,34 @@ function refreshCard(ei) {
   card.classList.toggle('glow-pr', $$('.set.pr-w, .set.pr-v', card).length > 0);
 }
 
+/* ---------- temporizador de descanso ---------- */
+let rest = null;
+function startRest(sec = num(state.profile.rest) || 90) {
+  stopRest();
+  rest = { end: Date.now() + sec * 1000, total: sec };
+  rest.iv = setInterval(tickRest, 250); tickRest();
+}
+function stopRest() { if (rest) clearInterval(rest.iv); rest = null; $('#rest')?.remove(); }
+function tickRest() {
+  if (!rest) return;
+  const host = $('.sheet-inner'); if (!host) return stopRest();
+  let el = $('#rest');
+  if (!el) {
+    el = document.createElement('div'); el.id = 'rest'; el.className = 'rest';
+    el.innerHTML = `<div class="rest-bar"><i></i></div><div class="rest-row">
+      <button class="btn sm ghost" data-rest="-15">−15s</button>
+      <div class="rest-t"><span>DESCANSO</span><b></b></div>
+      <button class="btn sm ghost" data-rest="15">+15s</button>
+      <button class="icon-btn sm" data-rest="0" aria-label="Saltar descanso">${IC.x}</button></div>`;
+    host.appendChild(el);
+  }
+  const left = Math.max(0, rest.end - Date.now()), sec = Math.ceil(left / 1000);
+  $('b', el).textContent = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+  $('.rest-bar i', el).style.width = clamp(left / (rest.total * 1000) * 100, 0, 100) + '%';
+  el.classList.toggle('ending', sec <= 5);
+  if (left <= 0) { stopRest(); navigator.vibrate?.([200, 100, 200]); toast('Descanso terminado — próxima série!', 'ok'); }
+}
+
 /* ---------- seletor de exercícios ---------- */
 function openPicker() {
   const m = $('#modal');
@@ -722,6 +836,13 @@ function saveDraft() {
     const t = TIERS[RANKS[after.rank].tier];
     alerts.push({ kind: 'rank', html: `<p class="sys-big">${before.ranked.length ? 'PROMOÇÃO DE RANK' : 'RANK ATRIBUÍDO'}</p><div class="alert-emblem" style="--glow:${t.glow}">${emblem(after.rank, 140, 'float')}</div><p class="rank-name" style="color:${t.glow}">${RANKS[after.rank].name}</p>${before.ranked.length ? `<p class="muted">${RANKS[before.rank].name} → ${RANKS[after.rank].name}</p>` : ''}${after.placement ? '<p class="muted">Provisório — completa 3 exercícios com rank.</p>' : ''}` });
   }
+  const mUps = MUSCLES.map(m => {
+    const a = after.muscles[m.key].mmr, b = before.muscles[m.key].mmr;
+    if (a === null) return null;
+    const ra = rankIdx(a), rb = b === null ? null : rankIdx(b);
+    return rb === null || ra > rb ? { m, ra, rb } : null;
+  }).filter(Boolean);
+  if (mUps.length) alerts.push({ kind: 'rank', html: `<p class="sys-big">RANK MUSCULAR</p>${bodyMap(after.muscles, null)}<ul class="ex-ups">${mUps.map(u => `<li>${emblem(u.ra, 40)}<div><b>${u.m.name}</b><span>${u.rb === null ? 'Rank inicial' : RANKS[u.rb].name + ' →'} <b style="color:${TIERS[RANKS[u.ra].tier].glow}">${RANKS[u.ra].name}</b></span></div></li>`).join('')}</ul>` });
   if (exUps.length) alerts.push({ kind: 'rank', html: `<p class="sys-big">RANK DE EXERCÍCIO</p><ul class="ex-ups">${exUps.map(u => `<li>${emblem(u.ra, 40)}<div><b>${esc(u.def.name)}</b><span>${u.rb === null ? 'Rank inicial' : RANKS[u.rb].name + ' →'} <b style="color:${TIERS[RANKS[u.ra].tier].glow}">${RANKS[u.ra].name}</b></span></div></li>`).join('')}</ul>` });
   if (!alerts.length) toast('Treino atualizado', 'ok');
   queueAlerts(alerts);
@@ -793,13 +914,18 @@ function demoData() {
 
 /* ---------- eventos ---------- */
 document.addEventListener('click', async ev => {
-  const el = ev.target.closest('[data-tab],[data-act],[data-go],[data-edit],[data-addset],[data-delset],[data-delex],[data-pick],[data-copy],[data-filter],[data-delcustom]');
+  const el = ev.target.closest('[data-tab],[data-act],[data-go],[data-edit],[data-addset],[data-delset],[data-delex],[data-pick],[data-copy],[data-filter],[data-delcustom],[data-muscle],[data-rest]');
   if (!el) {
     if (ev.target.id === 'modal' && !$(".sys-window.k-warn")) closeModal();
     return;
   }
   const d = el.dataset;
   if (d.tab) return go(d.tab);
+  if (d.muscle) { state.selMuscle = state.selMuscle === d.muscle ? null : d.muscle; save(); return render(false); }
+  if (d.rest !== undefined) {
+    const v = +d.rest; if (!v || !rest) return stopRest();
+    rest.end += v * 1000; rest.total = Math.max(1, rest.total + v); return tickRest();
+  }
   if (d.go) return go(d.go);
   if (d.edit) return openEditor(d.edit);
   if (d.filter) { state.recFilter = d.filter; save(); return render(); }
@@ -873,7 +999,7 @@ document.addEventListener('submit', ev => {
   if (f.id === 'profile-form') {
     const bw = num(fd.get('bw'));
     if (bw < 25 || bw > 300) return toast('Peso corporal inválido', 'bad');
-    state.profile = { name: String(fd.get('name')).trim() || 'Caçador', bw, sex: fd.get('sex') };
+    state.profile = { name: String(fd.get('name')).trim() || 'Caçador', bw, sex: fd.get('sex'), rest: clamp(Math.round(num(fd.get('rest')) || 90), 15, 600) };
     save(); render(); toast('Perfil guardado', 'ok');
   }
   if (f.id === 'custom-form') {
@@ -884,6 +1010,7 @@ document.addEventListener('submit', ev => {
 });
 
 document.addEventListener('change', ev => {
+  if (draft && ev.target.matches('.set input[data-f="r"]') && num(ev.target.value) > 0) startRest();
   if (ev.target.id !== 'import-file') return;
   const file = ev.target.files[0]; if (!file) return;
   file.text().then(txt => {
