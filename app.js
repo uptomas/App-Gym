@@ -10,27 +10,27 @@ const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
 const num = v => { const n = parseFloat(String(v ?? '').replace(',', '.')); return Number.isFinite(n) ? n : 0; };
-const fmt = (n, d = 1) => Number(n || 0).toLocaleString('pt-PT', { maximumFractionDigits: d });
+const fmt = (n, d = 1) => Number(n || 0).toLocaleString('en-GB', { maximumFractionDigits: d });
 const fmtKg = (n, d = 1) => `${fmt(n, d)} kg`;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const todayISO = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
 const dateObj = iso => new Date(iso + 'T12:00:00');
-const fmtDate = iso => dateObj(iso).toLocaleDateString('pt-PT', { weekday: 'short', day: '2-digit', month: 'short' });
-const fmtDateShort = iso => dateObj(iso).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' });
-const fmtMonth = iso => dateObj(iso).toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
+const fmtDate = iso => dateObj(iso).toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short' });
+const fmtDateShort = iso => dateObj(iso).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' });
+const fmtMonth = iso => dateObj(iso).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
 const daysBetween = (a, b) => Math.round((dateObj(b) - dateObj(a)) / 86400000);
 const e1rm = (load, reps) => reps <= 1 ? load : load * (1 + reps / 30); // fórmula de Epley
 
 /* ---------- ranks (estilo liga competitiva) ---------- */
 const TIERS = [
   { key: 'bronze', name: 'Bronze', c1: '#ffbf8a', c2: '#6e3416', glow: '#ff8f45' },
-  { key: 'silver', name: 'Prata', c1: '#ffffff', c2: '#5d6a85', glow: '#c9dcff' },
-  { key: 'gold', name: 'Ouro', c1: '#fff1a6', c2: '#a1630a', glow: '#ffc531' },
-  { key: 'plat', name: 'Platina', c1: '#c9fff6', c2: '#127481', glow: '#3ff0d6' },
-  { key: 'diamond', name: 'Diamante', c1: '#cfe9ff', c2: '#1739b8', glow: '#3d9bff' },
-  { key: 'champ', name: 'Campeão', c1: '#f0d4ff', c2: '#4b1596', glow: '#b45cff' },
-  { key: 'gc', name: 'Grande Campeão', c1: '#ffc4cf', c2: '#8a0a27', glow: '#ff3b5c' },
-  { key: 'legend', name: 'Lenda', c1: '#ffffff', c2: '#2a1cff', glow: '#9fb8ff' },
+  { key: 'silver', name: 'Silver', c1: '#ffffff', c2: '#5d6a85', glow: '#c9dcff' },
+  { key: 'gold', name: 'Gold', c1: '#fff1a6', c2: '#a1630a', glow: '#ffc531' },
+  { key: 'plat', name: 'Platinum', c1: '#c9fff6', c2: '#127481', glow: '#3ff0d6' },
+  { key: 'diamond', name: 'Diamond', c1: '#cfe9ff', c2: '#1739b8', glow: '#3d9bff' },
+  { key: 'champ', name: 'Champion', c1: '#f0d4ff', c2: '#4b1596', glow: '#b45cff' },
+  { key: 'gc', name: 'Grand Champion', c1: '#ffc4cf', c2: '#8a0a27', glow: '#ff3b5c' },
+  { key: 'legend', name: 'Legend', c1: '#ffffff', c2: '#2a1cff', glow: '#9fb8ff' },
 ];
 const STEP = 75; // MMR por divisão
 const ROMAN = ['I', 'II', 'III'];
@@ -62,47 +62,48 @@ function mmrToRatio(m, std) {
 }
 
 /* ---------- biblioteca de exercícios ---------- */
-const GROUPS = ['Peito', 'Costas', 'Pernas', 'Ombros', 'Braços', 'Core', 'Outros'];
+const GROUPS = ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Other'];
+const GROUP_PT = { Peito: 'Chest', Costas: 'Back', Pernas: 'Legs', Ombros: 'Shoulders', 'Braços': 'Arms', Outros: 'Other' };
 const LIB = [
-  ['supino', 'Supino reto (barra)', 'Peito', 'u', 0, [0.5, 0.75, 1.25, 1.75, 2.0]],
-  ['supino_incl', 'Supino inclinado (barra)', 'Peito', 'u', 0, [0.4, 0.65, 1.0, 1.4, 1.7]],
-  ['supino_halt', 'Supino com halteres', 'Peito', 'u', 0, [0.2, 0.35, 0.5, 0.7, 0.9], 1],
-  ['supino_incl_halt', 'Supino inclinado halteres', 'Peito', 'u', 0, [0.17, 0.3, 0.45, 0.62, 0.8], 1],
-  ['peck_deck', 'Peck deck / Crucifixo máquina', 'Peito', 'u', 0, [0.3, 0.55, 0.85, 1.2, 1.5]],
-  ['dips', 'Paralelas (dips)', 'Peito', 'u', 1, [1.0, 1.2, 1.5, 1.8, 2.1]],
-  ['peso_morto', 'Peso morto', 'Costas', 'l', 0, [1.0, 1.5, 2.0, 2.5, 3.0]],
-  ['remada_barra', 'Remada com barra', 'Costas', 'u', 0, [0.5, 0.75, 1.0, 1.5, 1.75]],
-  ['remada_halt', 'Remada unilateral halter', 'Costas', 'u', 0, [0.25, 0.4, 0.6, 0.85, 1.1], 1],
-  ['elevacoes', 'Elevações (pull-up)', 'Costas', 'u', 1, [1.0, 1.15, 1.35, 1.65, 1.9]],
-  ['puxada', 'Puxada frontal', 'Costas', 'u', 0, [0.5, 0.75, 1.0, 1.3, 1.6]],
-  ['remada_polia', 'Remada sentada (polia)', 'Costas', 'u', 0, [0.5, 0.75, 1.0, 1.4, 1.75]],
-  ['agachamento', 'Agachamento (barra)', 'Pernas', 'l', 0, [0.75, 1.25, 1.5, 2.25, 2.75]],
-  ['agach_frontal', 'Agachamento frontal', 'Pernas', 'l', 0, [0.6, 1.0, 1.25, 1.75, 2.2]],
-  ['leg_press', 'Leg press', 'Pernas', 'l', 0, [1.5, 2.25, 3.25, 4.5, 5.5]],
-  ['rdl', 'Peso morto romeno', 'Pernas', 'l', 0, [0.6, 1.0, 1.4, 1.9, 2.4]],
-  ['hip_thrust', 'Hip thrust', 'Pernas', 'l', 0, [0.75, 1.25, 2.0, 2.75, 3.5]],
-  ['afundos', 'Afundos / Búlgaro', 'Pernas', 'l', 0, [0.3, 0.6, 0.9, 1.3, 1.7]],
-  ['leg_ext', 'Extensão de pernas', 'Pernas', 'l', 0, [0.5, 0.8, 1.15, 1.6, 2.0]],
-  ['leg_curl', 'Curl femoral', 'Pernas', 'l', 0, [0.4, 0.6, 0.9, 1.2, 1.5]],
-  ['gemeos', 'Gémeos (máquina)', 'Pernas', 'l', 0, [0.75, 1.25, 1.75, 2.5, 3.25]],
-  ['press_militar', 'Press militar (barra)', 'Ombros', 'u', 0, [0.35, 0.55, 0.8, 1.05, 1.35]],
-  ['press_halt', 'Press de ombros halteres', 'Ombros', 'u', 0, [0.15, 0.25, 0.38, 0.52, 0.68], 1],
-  ['elev_lateral', 'Elevação lateral', 'Ombros', 'u', 0, [0.05, 0.1, 0.17, 0.25, 0.33], 1],
-  ['face_pull', 'Face pull', 'Ombros', 'u', 0, [0.2, 0.35, 0.5, 0.7, 0.9]],
-  ['curl_barra', 'Curl com barra', 'Braços', 'u', 0, [0.2, 0.4, 0.6, 0.85, 1.1]],
-  ['curl_halt', 'Curl com halteres', 'Braços', 'u', 0, [0.1, 0.2, 0.3, 0.45, 0.6], 1],
-  ['triceps_polia', 'Extensão tríceps (polia)', 'Braços', 'u', 0, [0.25, 0.4, 0.6, 0.85, 1.1]],
-  ['triceps_frances', 'Tríceps francês', 'Braços', 'u', 0, [0.15, 0.3, 0.5, 0.7, 0.9]],
-  ['abd_polia', 'Abdominal na polia', 'Core', 'u', 0, [0.3, 0.5, 0.75, 1.0, 1.3]],
+  ['supino', 'Bench press (barbell)', 'Chest', 'u', 0, [0.5, 0.75, 1.25, 1.75, 2.0]],
+  ['supino_incl', 'Incline bench press (barbell)', 'Chest', 'u', 0, [0.4, 0.65, 1.0, 1.4, 1.7]],
+  ['supino_halt', 'Dumbbell bench press', 'Chest', 'u', 0, [0.2, 0.35, 0.5, 0.7, 0.9], 1],
+  ['supino_incl_halt', 'Incline dumbbell press', 'Chest', 'u', 0, [0.17, 0.3, 0.45, 0.62, 0.8], 1],
+  ['peck_deck', 'Pec deck / Machine fly', 'Chest', 'u', 0, [0.3, 0.55, 0.85, 1.2, 1.5]],
+  ['dips', 'Dips', 'Chest', 'u', 1, [1.0, 1.2, 1.5, 1.8, 2.1]],
+  ['peso_morto', 'Deadlift', 'Back', 'l', 0, [1.0, 1.5, 2.0, 2.5, 3.0]],
+  ['remada_barra', 'Barbell row', 'Back', 'u', 0, [0.5, 0.75, 1.0, 1.5, 1.75]],
+  ['remada_halt', 'One-arm dumbbell row', 'Back', 'u', 0, [0.25, 0.4, 0.6, 0.85, 1.1], 1],
+  ['elevacoes', 'Pull-up', 'Back', 'u', 1, [1.0, 1.15, 1.35, 1.65, 1.9]],
+  ['puxada', 'Lat pulldown', 'Back', 'u', 0, [0.5, 0.75, 1.0, 1.3, 1.6]],
+  ['remada_polia', 'Seated cable row', 'Back', 'u', 0, [0.5, 0.75, 1.0, 1.4, 1.75]],
+  ['agachamento', 'Back squat (barbell)', 'Legs', 'l', 0, [0.75, 1.25, 1.5, 2.25, 2.75]],
+  ['agach_frontal', 'Front squat', 'Legs', 'l', 0, [0.6, 1.0, 1.25, 1.75, 2.2]],
+  ['leg_press', 'Leg press', 'Legs', 'l', 0, [1.5, 2.25, 3.25, 4.5, 5.5]],
+  ['rdl', 'Romanian deadlift', 'Legs', 'l', 0, [0.6, 1.0, 1.4, 1.9, 2.4]],
+  ['hip_thrust', 'Hip thrust', 'Legs', 'l', 0, [0.75, 1.25, 2.0, 2.75, 3.5]],
+  ['afundos', 'Lunge / Bulgarian split squat', 'Legs', 'l', 0, [0.3, 0.6, 0.9, 1.3, 1.7]],
+  ['leg_ext', 'Leg extension', 'Legs', 'l', 0, [0.5, 0.8, 1.15, 1.6, 2.0]],
+  ['leg_curl', 'Leg curl', 'Legs', 'l', 0, [0.4, 0.6, 0.9, 1.2, 1.5]],
+  ['gemeos', 'Calf raise (machine)', 'Legs', 'l', 0, [0.75, 1.25, 1.75, 2.5, 3.25]],
+  ['press_militar', 'Overhead press (barbell)', 'Shoulders', 'u', 0, [0.35, 0.55, 0.8, 1.05, 1.35]],
+  ['press_halt', 'Dumbbell shoulder press', 'Shoulders', 'u', 0, [0.15, 0.25, 0.38, 0.52, 0.68], 1],
+  ['elev_lateral', 'Lateral raise', 'Shoulders', 'u', 0, [0.05, 0.1, 0.17, 0.25, 0.33], 1],
+  ['face_pull', 'Face pull', 'Shoulders', 'u', 0, [0.2, 0.35, 0.5, 0.7, 0.9]],
+  ['curl_barra', 'Barbell curl', 'Arms', 'u', 0, [0.2, 0.4, 0.6, 0.85, 1.1]],
+  ['curl_halt', 'Dumbbell curl', 'Arms', 'u', 0, [0.1, 0.2, 0.3, 0.45, 0.6], 1],
+  ['triceps_polia', 'Triceps pushdown (cable)', 'Arms', 'u', 0, [0.25, 0.4, 0.6, 0.85, 1.1]],
+  ['triceps_frances', 'Skull crusher', 'Arms', 'u', 0, [0.15, 0.3, 0.5, 0.7, 0.9]],
+  ['abd_polia', 'Cable crunch', 'Core', 'u', 0, [0.3, 0.5, 0.75, 1.0, 1.3]],
 ].map(([id, name, group, reg, bw, std, ph]) => ({ id, name, group, region: reg === 'l' ? 'lower' : 'upper', bw: !!bw, std, perHand: !!ph }));
 const LIB_MAP = Object.fromEntries(LIB.map(e => [e.id, e]));
 
 /* músculos (estilo mapa muscular) — main: conta para o rank geral */
 const MUSCLES = [
-  { key: 'chest', name: 'Peito', main: 1 }, { key: 'back', name: 'Costas', main: 1 }, { key: 'shoulders', name: 'Ombros', main: 1 },
-  { key: 'biceps', name: 'Bíceps', main: 1 }, { key: 'triceps', name: 'Tríceps', main: 1 }, { key: 'quads', name: 'Quadríceps', main: 1 },
-  { key: 'hamstrings', name: 'Posteriores', main: 1 }, { key: 'glutes', name: 'Glúteos', main: 1 },
-  { key: 'calves', name: 'Gémeos', main: 0 }, { key: 'abs', name: 'Abdominais', main: 0 },
+  { key: 'chest', name: 'Chest', main: 1 }, { key: 'back', name: 'Back', main: 1 }, { key: 'shoulders', name: 'Shoulders', main: 1 },
+  { key: 'biceps', name: 'Biceps', main: 1 }, { key: 'triceps', name: 'Triceps', main: 1 }, { key: 'quads', name: 'Quads', main: 1 },
+  { key: 'hamstrings', name: 'Hamstrings', main: 1 }, { key: 'glutes', name: 'Glutes', main: 1 },
+  { key: 'calves', name: 'Calves', main: 0 }, { key: 'abs', name: 'Abs', main: 0 },
 ];
 const MUSCLE_OF = {
   supino: ['chest'], supino_incl: ['chest'], supino_halt: ['chest'], supino_incl_halt: ['chest'], peck_deck: ['chest'], dips: ['chest', 'triceps'],
@@ -125,17 +126,26 @@ function stdFor(def, sex) {
 /* ---------- estado ---------- */
 const LS_KEY = 'ironsystem.v1';
 function defaultState() {
-  return { profile: { name: 'Caçador', bw: 75, sex: 'm', rest: 90 }, workouts: [], custom: [], tab: 'status' };
+  return { profile: { name: 'Hunter', bw: 75, sex: 'm', rest: 90 }, workouts: [], custom: [], tab: 'status' };
 }
 function load() {
   try {
     const raw = localStorage.getItem(LS_KEY);
     if (!raw) return defaultState();
     const s = JSON.parse(raw);
-    return { ...defaultState(), ...s, profile: { ...defaultState().profile, ...(s.profile || {}) } };
+    const st = { ...defaultState(), ...s, profile: { ...defaultState().profile, ...(s.profile || {}) } };
+    return migrate(st);
   } catch { return defaultState(); }
 }
-function save() { try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch { toast('Não foi possível guardar no dispositivo', 'bad'); } }
+function migrate(st) { // dados antigos em português
+  if (st.profile.name === 'Caçador') st.profile.name = 'Hunter';
+  st.custom = (st.custom || []).map(c => ({ ...c, group: GROUP_PT[c.group] || c.group }));
+  if (st.recFilter && st.recFilter !== 'All' && !GROUPS.includes(st.recFilter)) st.recFilter = GROUP_PT[st.recFilter] || 'All';
+  const tabs = { treinos: 'workouts', recordes: 'records', perfil: 'profile' };
+  st.tab = tabs[st.tab] || st.tab;
+  return st;
+}
+function save() { try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch { toast('Could not save on this device', 'bad'); } }
 let state = load();
 
 /* ---------- motor: recordes, XP, ranking ---------- */
@@ -144,7 +154,7 @@ function levelFromXP(xp) {
   while (xp >= acc + need) { acc += need; lvl++; need = Math.round(200 + lvl * 60); }
   return { lvl, cur: xp - acc, need, total: xp };
 }
-const TITLES = [[1, 'Recruta'], [5, 'Despertado'], [10, 'Caçador'], [20, 'Caçador de Elite'], [30, 'Mestre de Masmorra'], [45, 'Soberano'], [60, 'Monarca do Ferro']];
+const TITLES = [[1, 'Recruit'], [5, 'Awakened'], [10, 'Hunter'], [20, 'Elite Hunter'], [30, 'Dungeon Master'], [45, 'Sovereign'], [60, 'Iron Monarch']];
 const titleFor = lvl => TITLES.filter(t => lvl >= t[0]).pop()[1];
 
 function weekKey(iso) {
@@ -232,9 +242,9 @@ function compute(st = state, excludeId = null) {
     ranked, muscles, musclesRanked, mmr, rank: rankIdx(mmr), placement: musclesRanked < 4, streak, last30, thisWeek,
     trainedToday: ws.some(w => w.date === t), count: ws.length,
     stats: {
-      FOR: 10 + Math.round(mmr / 8),
+      STR: 10 + Math.round(mmr / 8),
       VIT: 10 + ws.length * 2,
-      RES: 10 + Math.round(totalReps / 40),
+      END: 10 + Math.round(totalReps / 40),
       DIS: 10 + streak * 5 + last30 * 2,
     },
   };
@@ -322,10 +332,10 @@ function bodyMap(muscles, sel) {
     }
     return `<polygon ${attrs} points="${poly(pts, dx)}"/>` + (center ? '' : `<polygon ${attrs} points="${poly(mir(pts), dx)}"/>`);
   }).join('');
-  return `<svg class="bodymap" viewBox="0 0 420 372" role="img" aria-label="Mapa muscular">
+  return `<svg class="bodymap" viewBox="0 0 420 372" role="img" aria-label="Muscle map">
     <circle class="bm-n" cx="100" cy="34" r="17"/><circle class="bm-n" cx="320" cy="34" r="17"/>
     ${draw([...BODY_COMMON, ...BODY_FRONT], 0)}${draw([...BODY_COMMON, ...BODY_BACK], 220)}
-    <text x="100" y="371" class="bm-lbl">FRENTE</text><text x="320" y="371" class="bm-lbl">COSTAS</text>
+    <text x="100" y="371" class="bm-lbl">FRONT</text><text x="320" y="371" class="bm-lbl">BACK</text>
   </svg>`;
 }
 
@@ -341,8 +351,8 @@ const IC = {
   chev: '<svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>',
 };
 const prBadge = (type, small = false) => type === 'w'
-  ? `<span class="pr pr-w${small ? ' sm' : ''}" title="Recorde de peso">▲ PR PESO</span>`
-  : `<span class="pr pr-v${small ? ' sm' : ''}" title="Recorde de volume numa série">◆ PR VOLUME</span>`;
+  ? `<span class="pr pr-w${small ? ' sm' : ''}" title="Weight record">▲ WEIGHT PR</span>`
+  : `<span class="pr pr-v${small ? ' sm' : ''}" title="Single-set volume record">◆ VOLUME PR</span>`;
 
 /* ---------- render ---------- */
 let C = compute();
@@ -367,14 +377,14 @@ const VIEWS = {
       <div class="panel-title"><span>STATUS</span></div>
       <div class="status-top">
         <div class="lvl-block">
-          <div class="lvl-label">NÍVEL</div>
+          <div class="lvl-label">LEVEL</div>
           <div class="lvl-num">${L.lvl}</div>
         </div>
         <div class="who">
-          <div class="kv"><span>NOME</span><b>${esc(p.name)}</b></div>
-          <div class="kv"><span>TÍTULO</span><b class="glowtxt">${titleFor(L.lvl)}</b></div>
-          <div class="kv"><span>RANK</span><b style="color:${C.count ? TIERS[rk.tier].glow : 'var(--muted)'}">${C.count ? rk.name : 'Sem rank'}${C.placement && C.count ? ' <small>(provisório)</small>' : ''}</b></div>
-          <div class="kv"><span>PESO</span><b>${fmtKg(p.bw)}</b></div>
+          <div class="kv"><span>NAME</span><b>${esc(p.name)}</b></div>
+          <div class="kv"><span>TITLE</span><b class="glowtxt">${titleFor(L.lvl)}</b></div>
+          <div class="kv"><span>RANK</span><b style="color:${C.count ? TIERS[rk.tier].glow : 'var(--muted)'}">${C.count ? rk.name : 'Unranked'}${C.placement && C.count ? ' <small>(provisional)</small>' : ''}</b></div>
+          <div class="kv"><span>WEIGHT</span><b>${fmtKg(p.bw)}</b></div>
         </div>
         <button class="status-emblem" data-go="ranking">${emblem(C.count ? C.rank : null, 84, 'float')}</button>
       </div>
@@ -383,46 +393,46 @@ const VIEWS = {
         <div class="bar"><i style="width:${pct}%"></i></div>
       </div>
       <div class="stats">
-        ${Object.entries(C.stats).map(([k, val]) => `<div class="stat"><span>${{ FOR: 'FORÇA', VIT: 'VITALIDADE', RES: 'RESISTÊNCIA', DIS: 'DISCIPLINA' }[k]}</span><b>${val}</b></div>`).join('')}
+        ${Object.entries(C.stats).map(([k, val]) => `<div class="stat"><span>${{ STR: 'STRENGTH', VIT: 'VITALITY', END: 'ENDURANCE', DIS: 'DISCIPLINE' }[k]}</span><b>${val}</b></div>`).join('')}
       </div>
     </section>
 
     <section class="panel quest">
-      <div class="panel-title"><span>MISSÃO DIÁRIA</span></div>
-      <div class="quest-head">Missão: Ficar Mais Forte</div>
+      <div class="panel-title"><span>DAILY QUEST</span></div>
+      <div class="quest-head">Quest: Get Stronger</div>
       <ul class="quest-list">
-        <li class="${C.trainedToday ? 'done' : ''}"><span>Completar um treino hoje</span><b>[${C.trainedToday ? 1 : 0}/1]</b></li>
-        <li class="${C.thisWeek >= 3 ? 'done' : ''}"><span>Treinos esta semana</span><b>[${Math.min(C.thisWeek, 3)}/3]</b></li>
-        <li class="${C.streak >= 4 ? 'done' : ''}"><span>Semanas seguidas a treinar</span><b>[${Math.min(C.streak, 4)}/4]</b></li>
+        <li class="${C.trainedToday ? 'done' : ''}"><span>Complete a workout today</span><b>[${C.trainedToday ? 1 : 0}/1]</b></li>
+        <li class="${C.thisWeek >= 3 ? 'done' : ''}"><span>Workouts this week</span><b>[${Math.min(C.thisWeek, 3)}/3]</b></li>
+        <li class="${C.streak >= 4 ? 'done' : ''}"><span>Weeks in a row training</span><b>[${Math.min(C.streak, 4)}/4]</b></li>
       </ul>
-      ${C.trainedToday ? '<div class="quest-ok">MISSÃO DIÁRIA CONCLUÍDA</div>' : '<div class="quest-warn">⚠ Falhar a missão diária não tem penalização… desta vez.</div>'}
-      <button class="btn primary wide" data-act="new">${IC.plus}<span>INICIAR TREINO</span></button>
+      ${C.trainedToday ? '<div class="quest-ok">DAILY QUEST COMPLETE</div>' : '<div class="quest-warn">⚠ Failing the daily quest carries no penalty… this time.</div>'}
+      <button class="btn primary wide" data-act="new">${IC.plus}<span>START WORKOUT</span></button>
     </section>
 
     <section class="grid3">
-      <div class="panel mini"><span>TREINOS</span><b>${C.count}</b></div>
+      <div class="panel mini"><span>WORKOUTS</span><b>${C.count}</b></div>
       <div class="panel mini"><span>VOLUME</span><b>${fmt(C.totalVol / 1000, 1)}<small>t</small></b></div>
-      <div class="panel mini"><span>RECORDES</span><b class="gold">${C.prList.length}</b></div>
+      <div class="panel mini"><span>RECORDS</span><b class="gold">${C.prList.length}</b></div>
     </section>
 
     <section class="panel">
-      <div class="panel-title"><span>RECORDES RECENTES</span></div>
+      <div class="panel-title"><span>RECENT RECORDS</span></div>
       ${recent.length ? `<ul class="pr-feed">${recent.map(prRow).join('')}</ul>`
-        : `<p class="empty">Ainda sem recordes. O Sistema marca um <b class="gold">PR</b> sempre que superas o teu melhor peso ou o teu melhor volume numa série.</p>`}
+        : `<p class="empty">No records yet. The System marks a <b class="gold">PR</b> whenever you beat your best weight or your best single-set volume.</p>`}
     </section>`;
   },
 
-  treinos() {
+  workouts() {
     const ws = [...state.workouts].sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || 0) - (a.createdAt || 0));
     if (!ws.length) return `
       <section class="panel center">
-        <div class="panel-title"><span>REGISTO DE MASMORRAS</span></div>
+        <div class="panel-title"><span>DUNGEON LOG</span></div>
         <div class="big-icon">${emblem(null, 90)}</div>
-        <p class="empty">Ainda não tens treinos registados.<br>Cada treino dá EXP, cada recorde dá bónus.</p>
-        <button class="btn primary wide" data-act="new">${IC.plus}<span>NOVO TREINO</span></button>
-        <button class="btn ghost wide" data-act="demo">Carregar dados de exemplo</button>
+        <p class="empty">No workouts logged yet.<br>Every workout gives EXP, every record gives a bonus.</p>
+        <button class="btn primary wide" data-act="new">${IC.plus}<span>NEW WORKOUT</span></button>
+        <button class="btn ghost wide" data-act="demo">Load sample data</button>
       </section>`;
-    let html = `<button class="btn primary wide sticky-cta" data-act="new">${IC.plus}<span>NOVO TREINO</span></button>`;
+    let html = `<button class="btn primary wide sticky-cta" data-act="new">${IC.plus}<span>NEW WORKOUT</span></button>`;
     let month = '';
     for (const w of ws) {
       const m = fmtMonth(w.date);
@@ -433,7 +443,7 @@ const VIEWS = {
         <header>
           <div>
             <div class="w-date">${fmtDate(w.date)}</div>
-            <h4>${esc(w.name || 'Treino')}</h4>
+            <h4>${esc(w.name || 'Workout')}</h4>
           </div>
           <div class="w-xp">+${fmt(pw.xp, 0)}<small>EXP</small></div>
         </header>
@@ -443,10 +453,10 @@ const VIEWS = {
             const valid = e.sets.filter(s => num(s.r) > 0);
             const flags = valid.length ? e.sets.reduce((acc, _, si) => { const f = C.prFlags[`${w.id}:${ei}:${si}`]; if (f) { acc.w ||= f.w; acc.v ||= f.v; } return acc; }, {}) : {};
             const best = valid.reduce((a, s) => num(s.w) > num(a?.w ?? -1) ? s : a, null);
-            return `<li><span class="n">${esc(def.name)}</span><span class="d">${valid.length}× ${best ? `${def.bw && !num(best.w) ? 'PC' : fmt(num(best.w)) + 'kg'}×${num(best.r)}` : '—'}</span>${flags.w ? prBadge('w', true) : ''}${flags.v ? prBadge('v', true) : ''}</li>`;
+            return `<li><span class="n">${esc(def.name)}</span><span class="d">${valid.length}× ${best ? `${def.bw && !num(best.w) ? 'BW' : fmt(num(best.w)) + 'kg'}×${num(best.r)}` : '—'}</span>${flags.w ? prBadge('w', true) : ''}${flags.v ? prBadge('v', true) : ''}</li>`;
           }).join('')}
         </ul>
-        <footer><span>Volume <b>${fmtKg(pw.vol, 0)}</b></span>${pw.prs ? `<span class="gold">★ ${pw.prs} recorde${pw.prs > 1 ? 's' : ''}</span>` : ''}</footer>
+        <footer><span>Volume <b>${fmtKg(pw.vol, 0)}</b></span>${pw.prs ? `<span class="gold">★ ${pw.prs} record${pw.prs > 1 ? 's' : ''}</span>` : ''}</footer>
       </article>`;
     }
     return html;
@@ -465,14 +475,14 @@ const VIEWS = {
       if (nx) {
         const ratio = mmrToRatio(nx.min + 0.5, std);
         let need = ratio * bw; if (def.bw) need -= bw;
-        target = `<div class="target">Próximo: <b style="color:${TIERS[nx.tier].glow}">${nx.name}</b> → 1RM ${def.bw ? '+' : ''}${fmtKg(Math.ceil(need * 2) / 2)}${def.perHand ? ' /halter' : ''}</div>`;
+        target = `<div class="target">Next: <b style="color:${TIERS[nx.tier].glow}">${nx.name}</b> → 1RM ${def.bw ? '+' : ''}${fmtKg(Math.ceil(need * 2) / 2)}${def.perHand ? ' /dumbbell' : ''}</div>`;
       }
       const bestFor = Object.values(C.muscles).filter(m => m.best === s.id);
       return `<li class="${bestFor.length ? 'counts' : ''}">
         ${emblem(ri, 46)}
         <div class="rx">
           <div class="rx-top"><b>${esc(def.name)}</b>${bestFor.map(m => `<span class="tag">${m.name.toUpperCase()}</span>`).join('')}</div>
-          <div class="rx-sub"><span style="color:${TIERS[RANKS[ri].tier].glow}">${RANKS[ri].name}</span> · ${fmt(s.bestRatio, 2)}× PC · 1RM est. ${fmtKg(def.bw ? s.bestE1 - bw : s.bestE1)}${def.bw ? ' extra' : ''}</div>
+          <div class="rx-sub"><span style="color:${TIERS[RANKS[ri].tier].glow}">${RANKS[ri].name}</span> · ${fmt(s.bestRatio, 2)}× BW · est. 1RM ${fmtKg(def.bw ? s.bestE1 - bw : s.bestE1)}${def.bw ? ' extra' : ''}</div>
           ${target}
         </div>
         <div class="mmr">${fmt(s.bestMMR, 0)}</div>
@@ -480,44 +490,44 @@ const VIEWS = {
     }).join('');
     return `
     <section class="panel rank-hero tier-bg-${t.key}" style="--glow:${C.count ? t.glow : '#3a5687'}">
-      <div class="panel-title"><span>RANKING DE FORÇA</span></div>
-      ${C.count && C.ranked.length && C.placement ? `<div class="placement">EM QUALIFICAÇÃO · ${C.musclesRanked}/4 músculos com rank</div>` : ''}
+      <div class="panel-title"><span>STRENGTH RANKING</span></div>
+      ${C.count && C.ranked.length && C.placement ? `<div class="placement">PLACEMENTS · ${C.musclesRanked}/4 muscles ranked</div>` : ''}
       <div class="hero-emblem">${emblem(C.ranked.length ? C.rank : null, 170, 'float')}</div>
-      <div class="hero-name" style="color:${C.ranked.length ? t.glow : 'var(--muted)'}">${C.ranked.length ? rk.name : 'SEM RANK'}</div>
+      <div class="hero-name" style="color:${C.ranked.length ? t.glow : 'var(--muted)'}">${C.ranked.length ? rk.name : 'UNRANKED'}</div>
       <div class="hero-mmr"><b>${fmt(C.mmr, 0)}</b> MMR</div>
       ${C.ranked.length ? `
       <div class="div-progress">
         <div class="bar"><i style="width:${pct}%;background:linear-gradient(90deg, ${t.c2}, ${t.glow})"></i></div>
-        <div class="xp-row"><span>${rk.name}</span><span>${next ? `faltam ${fmt(Math.max(1, next.min - C.mmr), 0)} MMR para ${next.name}` : 'Rank máximo'}</span></div>
-      </div>` : '<p class="empty">Regista exercícios da biblioteca (supino, agachamento, peso morto…) para receberes rank.</p>'}
+        <div class="xp-row"><span>${rk.name}</span><span>${next ? `${fmt(Math.max(1, next.min - C.mmr), 0)} MMR to ${next.name}` : 'Max rank'}</span></div>
+      </div>` : '<p class="empty">Log exercises from the library (bench, squat, deadlift…) to get ranked.</p>'}
     </section>
 
     <section class="panel">
-      <div class="panel-title"><span>MAPA MUSCULAR</span></div>
+      <div class="panel-title"><span>MUSCLE MAP</span></div>
       ${bodyMap(C.muscles, state.selMuscle)}
       <ul class="muscle-list">${MUSCLES.map(m => {
         const mm = C.muscles[m.key], ri = mm.mmr !== null ? rankIdx(mm.mmr) : null;
         return `<li class="${state.selMuscle === m.key ? 'sel' : ''} ${ri === null ? 'off' : ''}" data-muscle="${m.key}">
           ${emblem(ri, 34)}
-          <div><b>${m.name}${m.main ? '' : ' <small>extra</small>'}</b><span>${ri === null ? 'Por treinar' : `<i style="color:${TIERS[RANKS[ri].tier].glow}">${RANKS[ri].name}</i> · ${esc(getEx(mm.best).name)}`}</span></div>
+          <div><b>${m.name}${m.main ? '' : ' <small>extra</small>'}</b><span>${ri === null ? 'Untrained' : `<i style="color:${TIERS[RANKS[ri].tier].glow}">${RANKS[ri].name}</i> · ${esc(getEx(mm.best).name)}`}</span></div>
         </li>`;
       }).join('')}</ul>
-      ${C.ranked.length && C.musclesRanked < 8 ? `<p class="hint">⚠ ${8 - C.musclesRanked} músculo(s) principal(is) por treinar contam como 0 no rank geral. Treina o corpo todo para subir.</p>` : ''}
+      ${C.ranked.length && C.musclesRanked < 8 ? `<p class="hint">⚠ ${8 - C.musclesRanked} untrained main muscle${8 - C.musclesRanked > 1 ? 's count' : ' counts'} as 0 in your overall rank. Train your whole body to climb.</p>` : ''}
     </section>
 
     <section class="panel">
-      <div class="panel-title"><span>RANK POR EXERCÍCIO</span></div>
-      ${exRows ? `<ul class="rank-list">${exRows}</ul>` : '<p class="empty">Nenhum exercício com rank ainda.</p>'}
+      <div class="panel-title"><span>RANK BY EXERCISE</span></div>
+      ${exRows ? `<ul class="rank-list">${exRows}</ul>` : '<p class="empty">No ranked exercises yet.</p>'}
       <details class="how">
-        <summary>Como funciona o ranking?</summary>
-        <p>Para cada exercício o Sistema calcula o teu <b>1RM estimado</b> (fórmula de Epley) e divide pelo teu <b>peso corporal</b> nesse treino. Essa razão é comparada com normas de força (iniciante → elite) e convertida em MMR.</p>
-        <p>Cada <b>músculo</b> fica com o rank do teu melhor exercício que o trabalha (ex.: o Peito usa o melhor entre supinos, peck deck e paralelas).</p><p>O teu <b>rank geral</b> é a média dos 8 músculos principais (peito, costas, ombros, bíceps, tríceps, quadríceps, posteriores e glúteos). Músculos por treinar contam como 0, por isso um físico equilibrado sobe mais. Gémeos e abdominais aparecem no mapa mas não contam. Precisas de 4 músculos com rank para saíres da qualificação.</p><p>Em exercícios de peso corporal (elevações, paralelas) conta o teu peso + carga extra.</p>
-        <p>Iniciante ≈ Prata · Novato ≈ Ouro · Intermédio ≈ Platina · Avançado ≈ Campeão · Elite ≈ Grande Campeão.</p>
+        <summary>How does the ranking work?</summary>
+        <p>For each exercise the System calculates your <b>estimated 1RM</b> (Epley formula) and divides it by your <b>bodyweight</b> on that day. That ratio is compared with strength standards (beginner → elite) and converted to MMR.</p>
+        <p>Each <b>muscle</b> takes the rank of your best exercise that trains it (e.g. Chest uses the best of your bench presses, pec deck and dips).</p><p>Your <b>overall rank</b> is the average of the 8 main muscles (chest, back, shoulders, biceps, triceps, quads, hamstrings and glutes). Untrained muscles count as 0, so a balanced physique climbs faster. Calves and abs show on the map but don't count. You need 4 ranked muscles to finish placements.</p><p>For bodyweight exercises (pull-ups, dips) your bodyweight + added load counts.</p>
+        <p>Beginner ≈ Silver · Novice ≈ Gold · Intermediate ≈ Platinum · Advanced ≈ Champion · Elite ≈ Grand Champion.</p>
       </details>
     </section>
 
     <section class="panel">
-      <div class="panel-title"><span>ESCADA DE RANKS</span></div>
+      <div class="panel-title"><span>RANK LADDER</span></div>
       <ul class="ladder">
         ${TIERS.map((tt, ti) => {
           const idxs = RANKS.map((r, i) => ({ r, i })).filter(o => o.r.tier === ti);
@@ -531,30 +541,30 @@ const VIEWS = {
     </section>`;
   },
 
-  recordes() {
+  records() {
     const list = Object.values(C.ex).sort((a, b) => b.last.date.localeCompare(a.last.date));
-    if (!list.length) return `<section class="panel"><div class="panel-title"><span>RECORDES</span></div><p class="empty">Regista treinos para veres os teus recordes por exercício.</p></section>`;
-    const filter = state.recFilter || 'Todos';
-    const groups = ['Todos', ...GROUPS.filter(g => list.some(s => getEx(s.id)?.group === g))];
+    if (!list.length) return `<section class="panel"><div class="panel-title"><span>RECORDS</span></div><p class="empty">Log workouts to see your records for each exercise.</p></section>`;
+    const filter = state.recFilter || 'All';
+    const groups = ['All', ...GROUPS.filter(g => list.some(s => getEx(s.id)?.group === g))];
     return `
       <div class="chips">${groups.map(g => `<button class="chip ${g === filter ? 'on' : ''}" data-filter="${g}">${g}</button>`).join('')}</div>
-      ${list.filter(s => filter === 'Todos' || getEx(s.id)?.group === filter).map(s => {
+      ${list.filter(s => filter === 'All' || getEx(s.id)?.group === filter).map(s => {
         const def = getEx(s.id); if (!def) return '';
         const ri = s.bestMMR !== null ? rankIdx(s.bestMMR) : null;
-        const lbl = w => def.bw ? (w ? `PC+${fmt(w)}kg` : 'PC') : fmtKg(w);
+        const lbl = w => def.bw ? (w ? `BW+${fmt(w)}kg` : 'BW') : fmtKg(w);
         return `<details class="panel rec">
           <summary>
             ${emblem(ri, 44)}
             <div class="rec-main">
               <b>${esc(def.name)}</b>
-              <span>${s.sessions} sessões · último ${fmtDateShort(s.last.date)}${s.prs ? ` · <i class="gold">${s.prs} PR</i>` : ''}</span>
+              <span>${s.sessions} sessions · last ${fmtDateShort(s.last.date)}${s.prs ? ` · <i class="gold">${s.prs} PR</i>` : ''}</span>
             </div>
             <span class="chev">${IC.chev}</span>
           </summary>
           <div class="rec-grid">
-            <div class="rbox w"><span>▲ MAIOR PESO</span><b>${lbl(s.bestW.w)}</b><small>× ${s.bestW.r} reps · ${fmtDateShort(s.bestW.date)}</small></div>
-            <div class="rbox v"><span>◆ MAIOR VOLUME/SÉRIE</span><b>${fmtKg(s.bestVol.v, 0)}</b><small>${lbl(s.bestVol.w)} × ${s.bestVol.r} · ${fmtDateShort(s.bestVol.date)}</small></div>
-            <div class="rbox e"><span>1RM ESTIMADO</span><b>${fmtKg(s.bestE1)}</b><small>${ri !== null ? RANKS[ri].name : 'sem rank'}</small></div>
+            <div class="rbox w"><span>▲ HEAVIEST</span><b>${lbl(s.bestW.w)}</b><small>× ${s.bestW.r} reps · ${fmtDateShort(s.bestW.date)}</small></div>
+            <div class="rbox v"><span>◆ BEST SET VOLUME</span><b>${fmtKg(s.bestVol.v, 0)}</b><small>${lbl(s.bestVol.w)} × ${s.bestVol.r} · ${fmtDateShort(s.bestVol.date)}</small></div>
+            <div class="rbox e"><span>ESTIMATED 1RM</span><b>${fmtKg(s.bestE1)}</b><small>${ri !== null ? RANKS[ri].name : 'unranked'}</small></div>
           </div>
           ${chart(s.hist)}
           <ul class="hist">${[...s.hist].reverse().slice(0, 8).map(h => `<li><span>${fmtDate(h.date)}</span><span>top ${lbl(h.w)}</span><span>vol ${fmtKg(h.v, 0)}</span><span>1RM ${fmt(h.e1, 0)}</span></li>`).join('')}</ul>
@@ -562,36 +572,36 @@ const VIEWS = {
       }).join('')}`;
   },
 
-  perfil() {
+  profile() {
     const p = state.profile;
     return `
     <section class="panel">
-      <div class="panel-title"><span>PERFIL DO CAÇADOR</span></div>
+      <div class="panel-title"><span>HUNTER PROFILE</span></div>
       <form id="profile-form" class="form">
-        <label>Nome<input name="name" value="${esc(p.name)}" maxlength="24" autocomplete="off"></label>
-        <label>Peso corporal (kg)<input name="bw" value="${esc(p.bw)}" inputmode="decimal"></label>
-        <label>Descanso entre séries (segundos)<input name="rest" value="${esc(p.rest || 90)}" inputmode="numeric"></label>
-        <label>Normas de força
-          <select name="sex"><option value="m" ${p.sex !== 'f' ? 'selected' : ''}>Masculinas</option><option value="f" ${p.sex === 'f' ? 'selected' : ''}>Femininas</option></select>
+        <label>Name<input name="name" value="${esc(p.name)}" maxlength="24" autocomplete="off"></label>
+        <label>Bodyweight (kg)<input name="bw" value="${esc(p.bw)}" inputmode="decimal"></label>
+        <label>Rest between sets (seconds)<input name="rest" value="${esc(p.rest || 90)}" inputmode="numeric"></label>
+        <label>Strength standards
+          <select name="sex"><option value="m" ${p.sex !== 'f' ? 'selected' : ''}>Male</option><option value="f" ${p.sex === 'f' ? 'selected' : ''}>Female</option></select>
         </label>
-        <p class="hint">O peso corporal é guardado em cada treino novo — atualiza-o sempre que te pesares. O ranking usa o peso que tinhas no dia de cada treino.</p>
-        <button class="btn primary wide" type="submit">GUARDAR</button>
+        <p class="hint">Your bodyweight is saved with every new workout — update it whenever you weigh yourself. The ranking uses the weight you had on the day of each workout.</p>
+        <button class="btn primary wide" type="submit">SAVE</button>
       </form>
     </section>
 
     <section class="panel">
-      <div class="panel-title"><span>EXERCÍCIOS PERSONALIZADOS</span></div>
-      ${state.custom.length ? `<ul class="custom-list">${state.custom.map(c => `<li><span>${esc(c.name)} <small>${esc(c.group)}${c.bw ? ' · peso corporal' : ''}</small></span><button class="icon-btn" data-delcustom="${c.id}" aria-label="Apagar">${IC.trash}</button></li>`).join('')}</ul>` : '<p class="empty">Cria exercícios novos diretamente ao adicionar um exercício num treino. Contam para EXP e recordes (não para o rank).</p>'}
+      <div class="panel-title"><span>CUSTOM EXERCISES</span></div>
+      ${state.custom.length ? `<ul class="custom-list">${state.custom.map(c => `<li><span>${esc(c.name)} <small>${esc(c.group)}${c.bw ? ' · bodyweight' : ''}</small></span><button class="icon-btn" data-delcustom="${c.id}" aria-label="Delete">${IC.trash}</button></li>`).join('')}</ul>` : '<p class="empty">Create new exercises when adding an exercise to a workout. They count for EXP and records (not for rank).</p>'}
     </section>
 
     <section class="panel">
-      <div class="panel-title"><span>DADOS</span></div>
-      <p class="hint">Os teus dados ficam guardados apenas neste dispositivo/navegador. Faz cópias de segurança.</p>
+      <div class="panel-title"><span>DATA</span></div>
+      <p class="hint">Your data is stored only on this device/browser. Make backups.</p>
       <div class="btn-col">
-        <button class="btn" data-act="export">Exportar cópia (JSON)</button>
-        <label class="btn">Importar cópia<input type="file" accept="application/json,.json" id="import-file" hidden></label>
-        <button class="btn ghost" data-act="demo">Carregar dados de exemplo</button>
-        <button class="btn danger" data-act="reset">Apagar todos os dados</button>
+        <button class="btn" data-act="export">Export backup (JSON)</button>
+        <label class="btn">Import backup<input type="file" accept="application/json,.json" id="import-file" hidden></label>
+        <button class="btn ghost" data-act="demo">Load sample data</button>
+        <button class="btn danger" data-act="reset">Delete all data</button>
       </div>
     </section>`;
   },
@@ -599,23 +609,23 @@ const VIEWS = {
 
 function prRow(p) {
   const def = getEx(p.exId); if (!def) return '';
-  const lbl = w => def.bw ? (w ? `PC+${fmt(w)}kg` : 'PC') : fmtKg(w);
+  const lbl = w => def.bw ? (w ? `BW+${fmt(w)}kg` : 'BW') : fmtKg(w);
   return `<li class="${p.type}">
     ${prBadge(p.type, true)}
-    <div><b>${esc(def.name)}</b><span>${p.type === 'w' ? `${lbl(p.w)} × ${p.r} <i>(antes ${lbl(p.prev)})</i>` : `${lbl(p.w)} × ${p.r} = ${fmtKg(p.v, 0)} <i>(antes ${fmt(p.prev, 0)})</i>`}</span></div>
+    <div><b>${esc(def.name)}</b><span>${p.type === 'w' ? `${lbl(p.w)} × ${p.r} <i>(was ${lbl(p.prev)})</i>` : `${lbl(p.w)} × ${p.r} = ${fmtKg(p.v, 0)} <i>(was ${fmt(p.prev, 0)})</i>`}</span></div>
     <time>${fmtDateShort(p.date)}</time>
   </li>`;
 }
 
 function chart(hist) {
-  if (hist.length < 2) return '<p class="hint">Mais sessões para veres a evolução do 1RM estimado.</p>';
+  if (hist.length < 2) return '<p class="hint">Log more sessions to see your estimated 1RM progress.</p>';
   const W = 320, H = 110, P = 14;
   const vals = hist.map(h => h.e1), mn = Math.min(...vals), mx = Math.max(...vals), rng = mx - mn || 1;
   const t0 = dateObj(hist[0].date), span = (dateObj(hist[hist.length - 1].date) - t0) || 1;
   const pts = hist.map(h => [P + (dateObj(h.date) - t0) / span * (W - 2 * P), H - P - (h.e1 - mn) / rng * (H - 2 * P - 10)]);
   const line = pts.map(p => p.map(v => v.toFixed(1)).join(',')).join(' ');
   const id = 'ch' + (gid++);
-  return `<div class="chart"><div class="chart-lbl"><span>EVOLUÇÃO 1RM ESTIMADO</span><span>${fmt(mn, 0)} → ${fmt(mx, 0)} kg</span></div>
+  return `<div class="chart"><div class="chart-lbl"><span>ESTIMATED 1RM PROGRESS</span><span>${fmt(mn, 0)} → ${fmt(mx, 0)} kg</span></div>
   <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
     <defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3fb6ff" stop-opacity=".45"/><stop offset="1" stop-color="#3fb6ff" stop-opacity="0"/></linearGradient></defs>
     ${[0.25, 0.5, 0.75].map(f => `<line x1="0" x2="${W}" y1="${H * f}" y2="${H * f}" stroke="rgba(90,160,255,.12)"/>`).join('')}
@@ -651,24 +661,24 @@ function renderEditor() {
   $('#sheet').innerHTML = `
   <div class="sheet-inner">
     <header class="sheet-head">
-      <button class="icon-btn" data-act="close" aria-label="Fechar">${IC.x}</button>
-      <div class="sheet-title">${draft.isNew ? 'NOVO TREINO' : 'EDITAR TREINO'}</div>
-      <button class="btn primary sm" data-act="save">CONCLUIR</button>
+      <button class="icon-btn" data-act="close" aria-label="Close">${IC.x}</button>
+      <div class="sheet-title">${draft.isNew ? 'NEW WORKOUT' : 'EDIT WORKOUT'}</div>
+      <button class="btn primary sm" data-act="save">FINISH</button>
     </header>
     <div class="sheet-body">
       <div class="panel form-row">
-        <label>Data<input type="date" id="d-date" value="${esc(draft.date)}"></label>
-        <label>Peso corp. (kg)<input id="d-bw" inputmode="decimal" value="${esc(draft.bw)}"></label>
-        <label class="full">Nome do treino<input id="d-name" placeholder="ex.: Push — Peito e Ombros" value="${esc(draft.name)}" maxlength="40"></label>
+        <label>Date<input type="date" id="d-date" value="${esc(draft.date)}"></label>
+        <label>Bodyweight (kg)<input id="d-bw" inputmode="decimal" value="${esc(draft.bw)}"></label>
+        <label class="full">Workout name<input id="d-name" placeholder="e.g. Push — Chest & Shoulders" value="${esc(draft.name)}" maxlength="40"></label>
       </div>
       ${!draft.exercises.length && recent.length ? `
       <div class="panel">
-        <div class="panel-title"><span>REPETIR UM TREINO</span></div>
-        <div class="chips wrap">${recent.map(w => `<button class="chip" data-copy="${w.id}">${IC.copy}${esc(w.name || 'Treino')} · ${fmtDateShort(w.date)}</button>`).join('')}</div>
+        <div class="panel-title"><span>REPEAT A WORKOUT</span></div>
+        <div class="chips wrap">${recent.map(w => `<button class="chip" data-copy="${w.id}">${IC.copy}${esc(w.name || 'Workout')} · ${fmtDateShort(w.date)}</button>`).join('')}</div>
       </div>` : ''}
       <div id="ex-list">${draft.exercises.map((e, ei) => exCard(e, ei)).join('')}</div>
-      <button class="btn wide dashed" data-act="pick">${IC.plus}<span>ADICIONAR EXERCÍCIO</span></button>
-      ${!draft.isNew ? `<button class="btn danger wide" data-act="delete">${IC.trash}<span>APAGAR TREINO</span></button>` : ''}
+      <button class="btn wide dashed" data-act="pick">${IC.plus}<span>ADD EXERCISE</span></button>
+      ${!draft.isNew ? `<button class="btn danger wide" data-act="delete">${IC.trash}<span>DELETE WORKOUT</span></button>` : ''}
     </div>
   </div>`;
   draft.exercises.forEach((_, ei) => refreshCard(ei));
@@ -677,29 +687,29 @@ function renderEditor() {
 function exCard(e, ei) {
   const def = getEx(e.exId);
   const b = baseline[e.exId];
-  const prev = b?.last ? b.last.sets.filter(s => num(s.r) > 0).map(s => `${def.bw && !num(s.w) ? 'PC' : fmt(num(s.w))}×${num(s.r)}`).join(' · ') : null;
+  const prev = b?.last ? b.last.sets.filter(s => num(s.r) > 0).map(s => `${def.bw && !num(s.w) ? 'BW' : fmt(num(s.w))}×${num(s.r)}`).join(' · ') : null;
   return `
   <div class="panel ex-card" data-ei="${ei}">
     <div class="ex-head">
       <div>
         <b>${esc(def?.name || '?')}</b>
-        <small>${esc(def?.group || '')}${def?.bw ? ' · peso corporal + extra' : ''}${def?.perHand ? ' · kg por halter' : ''}</small>
+        <small>${esc(def?.group || '')}${def?.bw ? ' · bodyweight + added load' : ''}${def?.perHand ? ' · kg per dumbbell' : ''}</small>
       </div>
-      <button class="icon-btn" data-delex="${ei}" aria-label="Remover exercício">${IC.trash}</button>
+      <button class="icon-btn" data-delex="${ei}" aria-label="Remove exercise">${IC.trash}</button>
     </div>
-    ${b ? `<div class="ex-rec"><span>Anterior: ${prev || '—'}</span><span>Recorde: <b class="gold">${def.bw ? (b.bestW.w ? '+' + fmt(b.bestW.w) : 'PC') : fmt(b.bestW.w)}kg</b> · <b class="cyan">${fmt(b.bestVol.v, 0)} vol</b></span></div>` : '<div class="ex-rec"><span>Primeira vez — este treino define a tua base.</span></div>'}
+    ${b ? `<div class="ex-rec"><span>Previous: ${prev || '—'}</span><span>Record: <b class="gold">${def.bw ? (b.bestW.w ? '+' + fmt(b.bestW.w) : 'BW') : fmt(b.bestW.w)}kg</b> · <b class="cyan">${fmt(b.bestVol.v, 0)} vol</b></span></div>` : '<div class="ex-rec"><span>First time — this workout sets your baseline.</span></div>'}
     <div class="sets">
-      <div class="set-h"><span>SÉRIE</span><span>${def?.bw ? '+KG' : 'KG'}</span><span>REPS</span><span>VOLUME</span><span></span></div>
+      <div class="set-h"><span>SET</span><span>${def?.bw ? '+KG' : 'KG'}</span><span>REPS</span><span>VOLUME</span><span></span></div>
       ${e.sets.map((s, si) => `
       <div class="set" data-si="${si}">
         <span class="set-n">${si + 1}</span>
-        <input data-f="w" inputmode="decimal" value="${esc(s.w)}" placeholder="${def?.bw ? '0' : '—'}" aria-label="Peso série ${si + 1}">
-        <input data-f="r" inputmode="numeric" value="${esc(s.r)}" placeholder="—" aria-label="Repetições série ${si + 1}">
+        <input data-f="w" inputmode="decimal" value="${esc(s.w)}" placeholder="${def?.bw ? '0' : '—'}" aria-label="Weight set ${si + 1}">
+        <input data-f="r" inputmode="numeric" value="${esc(s.r)}" placeholder="—" aria-label="Reps set ${si + 1}">
         <span class="set-vol"></span>
-        <button class="icon-btn sm" data-delset="${si}" aria-label="Remover série">${IC.x}</button>
+        <button class="icon-btn sm" data-delset="${si}" aria-label="Remove set">${IC.x}</button>
       </div>`).join('')}
     </div>
-    <button class="btn sm ghost add-set" data-addset="${ei}">${IC.plus}<span>Série</span></button>
+    <button class="btn sm ghost add-set" data-addset="${ei}">${IC.plus}<span>Set</span></button>
   </div>`;
 }
 
@@ -723,7 +733,7 @@ function refreshCard(ei) {
     const isW = b && topW && topW.si === si && topW.w > b.bestW.w;
     const isV = b && topV && topV.si === si && topV.v > b.bestVol.v;
     row.classList.toggle('pr-w', !!isW); row.classList.toggle('pr-v', !!isV);
-    row.title = [isW && 'Recorde de peso', isV && 'Recorde de volume'].filter(Boolean).join(' + ');
+    row.title = [isW && 'Weight record', isV && 'Volume record'].filter(Boolean).join(' + ');
   });
   card.classList.toggle('glow-pr', $$('.set.pr-w, .set.pr-v', card).length > 0);
 }
@@ -744,16 +754,16 @@ function tickRest() {
     el = document.createElement('div'); el.id = 'rest'; el.className = 'rest';
     el.innerHTML = `<div class="rest-bar"><i></i></div><div class="rest-row">
       <button class="btn sm ghost" data-rest="-15">−15s</button>
-      <div class="rest-t"><span>DESCANSO</span><b></b></div>
+      <div class="rest-t"><span>REST</span><b></b></div>
       <button class="btn sm ghost" data-rest="15">+15s</button>
-      <button class="icon-btn sm" data-rest="0" aria-label="Saltar descanso">${IC.x}</button></div>`;
+      <button class="icon-btn sm" data-rest="0" aria-label="Skip rest">${IC.x}</button></div>`;
     host.appendChild(el);
   }
   const left = Math.max(0, rest.end - Date.now()), sec = Math.ceil(left / 1000);
   $('b', el).textContent = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
   $('.rest-bar i', el).style.width = clamp(left / (rest.total * 1000) * 100, 0, 100) + '%';
   el.classList.toggle('ending', sec <= 5);
-  if (left <= 0) { stopRest(); navigator.vibrate?.([200, 100, 200]); toast('Descanso terminado — próxima série!', 'ok'); }
+  if (left <= 0) { stopRest(); navigator.vibrate?.([200, 100, 200]); toast('Rest over — next set!', 'ok'); }
 }
 
 /* ---------- seletor de exercícios ---------- */
@@ -762,17 +772,17 @@ function openPicker() {
   m.innerHTML = `
   <div class="modal-box picker">
     <div class="picker-head">
-      <div class="search">${IC.search}<input id="pick-q" placeholder="Procurar exercício…" autocomplete="off"></div>
-      <button class="icon-btn" data-act="mclose" aria-label="Fechar">${IC.x}</button>
+      <div class="search">${IC.search}<input id="pick-q" placeholder="Search exercise…" autocomplete="off"></div>
+      <button class="icon-btn" data-act="mclose" aria-label="Close">${IC.x}</button>
     </div>
     <div id="pick-list" class="pick-list"></div>
     <details class="new-ex">
-      <summary>${IC.plus} Criar exercício personalizado</summary>
+      <summary>${IC.plus} Create custom exercise</summary>
       <form id="custom-form" class="form">
-        <input name="name" placeholder="Nome do exercício" required maxlength="40">
+        <input name="name" placeholder="Exercise name" required maxlength="40">
         <select name="group">${GROUPS.map(g => `<option>${g}</option>`).join('')}</select>
-        <label class="check"><input type="checkbox" name="bw"> Exercício de peso corporal</label>
-        <button class="btn primary wide" type="submit">CRIAR E ADICIONAR</button>
+        <label class="check"><input type="checkbox" name="bw"> Bodyweight exercise</label>
+        <button class="btn primary wide" type="submit">CREATE AND ADD</button>
       </form>
     </details>
   </div>`;
@@ -786,9 +796,9 @@ function fillPicker(q) {
     const items = all.filter(e => e.group === g); if (!items.length) return '';
     return `<div class="pick-g">${g}</div>` + items.map(e => {
       const s = C.ex[e.id];
-      return `<button class="pick-item" data-pick="${e.id}"><span>${esc(e.name)}${e.custom ? ' <small>personalizado</small>' : ''}</span>${s ? `<small class="cyan">${fmt(s.bestW.w)}kg</small>` : ''}</button>`;
+      return `<button class="pick-item" data-pick="${e.id}"><span>${esc(e.name)}${e.custom ? ' <small>custom</small>' : ''}</span>${s ? `<small class="cyan">${fmt(s.bestW.w)}kg</small>` : ''}</button>`;
     }).join('');
-  }).join('') || '<p class="empty">Sem resultados — cria um exercício personalizado abaixo.</p>';
+  }).join('') || '<p class="empty">No results — create a custom exercise below.</p>';
 }
 function closeModal() {
   const m = $('#modal'); m.classList.remove('open');
@@ -807,7 +817,7 @@ function saveDraft() {
   const exercises = draft.exercises
     .map(e => ({ exId: e.exId, sets: e.sets.filter(s => num(s.r) > 0).map(s => ({ w: num(s.w), r: Math.round(num(s.r)) })) }))
     .filter(e => e.sets.length);
-  if (!exercises.length) { toast('Adiciona pelo menos uma série com repetições', 'bad'); return; }
+  if (!exercises.length) { toast('Add at least one set with reps', 'bad'); return; }
   const before = C;
   const w = { id: draft.id, date: draft.date || todayISO(), name: draft.name.trim(), bw: num(draft.bw) || num(state.profile.bw), exercises, createdAt: draft.createdAt };
   const i = state.workouts.findIndex(x => x.id === w.id);
@@ -818,12 +828,12 @@ function saveDraft() {
 
   const alerts = [];
   const pw = after.perWorkout[w.id];
-  if (wasNew) alerts.push({ kind: 'quest', html: `<p class="sys-big">TREINO CONCLUÍDO</p><p>Volume total: <b>${fmtKg(pw.vol, 0)}</b></p><p class="reward">Recompensa: <b>+${fmt(pw.xp, 0)} EXP</b></p>` });
+  if (wasNew) alerts.push({ kind: 'quest', html: `<p class="sys-big">WORKOUT COMPLETE</p><p>Total volume: <b>${fmtKg(pw.vol, 0)}</b></p><p class="reward">Reward: <b>+${fmt(pw.xp, 0)} EXP</b></p>` });
   const prs = after.prList.filter(p => p.wid === w.id);
   if (prs.length) alerts.push({
-    kind: 'pr', html: `<p class="sys-big gold">NOVO RECORDE PESSOAL</p><ul class="pr-feed in-alert">${prs.map(prRow).join('')}</ul><p class="reward">Bónus: <b>+${prs.length * 50} EXP</b></p>`,
+    kind: 'pr', html: `<p class="sys-big gold">NEW PERSONAL RECORD</p><ul class="pr-feed in-alert">${prs.map(prRow).join('')}</ul><p class="reward">Bonus: <b>+${prs.length * 50} EXP</b></p>`,
   });
-  if (after.level.lvl > before.level.lvl) alerts.push({ kind: 'level', html: `<p class="lvl-up">LEVEL UP!</p><p class="lvl-from"><span>${before.level.lvl}</span> → <b>${after.level.lvl}</b></p>${titleFor(after.level.lvl) !== titleFor(before.level.lvl) ? `<p>Novo título: <b class="glowtxt">${titleFor(after.level.lvl)}</b></p>` : ''}` });
+  if (after.level.lvl > before.level.lvl) alerts.push({ kind: 'level', html: `<p class="lvl-up">LEVEL UP!</p><p class="lvl-from"><span>${before.level.lvl}</span> → <b>${after.level.lvl}</b></p>${titleFor(after.level.lvl) !== titleFor(before.level.lvl) ? `<p>New title: <b class="glowtxt">${titleFor(after.level.lvl)}</b></p>` : ''}` });
   const exUps = [];
   for (const e of exercises) {
     const a = after.ex[e.exId], b = before.ex[e.exId];
@@ -834,7 +844,7 @@ function saveDraft() {
   const overallUp = after.ranked.length && (after.rank > before.rank || (!before.ranked.length));
   if (overallUp) {
     const t = TIERS[RANKS[after.rank].tier];
-    alerts.push({ kind: 'rank', html: `<p class="sys-big">${before.ranked.length ? 'PROMOÇÃO DE RANK' : 'RANK ATRIBUÍDO'}</p><div class="alert-emblem" style="--glow:${t.glow}">${emblem(after.rank, 140, 'float')}</div><p class="rank-name" style="color:${t.glow}">${RANKS[after.rank].name}</p>${before.ranked.length ? `<p class="muted">${RANKS[before.rank].name} → ${RANKS[after.rank].name}</p>` : ''}${after.placement ? '<p class="muted">Provisório — completa 3 exercícios com rank.</p>' : ''}` });
+    alerts.push({ kind: 'rank', html: `<p class="sys-big">${before.ranked.length ? 'RANK PROMOTION' : 'RANK ASSIGNED'}</p><div class="alert-emblem" style="--glow:${t.glow}">${emblem(after.rank, 140, 'float')}</div><p class="rank-name" style="color:${t.glow}">${RANKS[after.rank].name}</p>${before.ranked.length ? `<p class="muted">${RANKS[before.rank].name} → ${RANKS[after.rank].name}</p>` : ''}${after.placement ? '<p class="muted">Provisional — get 4 muscles ranked.</p>' : ''}` });
   }
   const mUps = MUSCLES.map(m => {
     const a = after.muscles[m.key].mmr, b = before.muscles[m.key].mmr;
@@ -842,9 +852,9 @@ function saveDraft() {
     const ra = rankIdx(a), rb = b === null ? null : rankIdx(b);
     return rb === null || ra > rb ? { m, ra, rb } : null;
   }).filter(Boolean);
-  if (mUps.length) alerts.push({ kind: 'rank', html: `<p class="sys-big">RANK MUSCULAR</p>${bodyMap(after.muscles, null)}<ul class="ex-ups">${mUps.map(u => `<li>${emblem(u.ra, 40)}<div><b>${u.m.name}</b><span>${u.rb === null ? 'Rank inicial' : RANKS[u.rb].name + ' →'} <b style="color:${TIERS[RANKS[u.ra].tier].glow}">${RANKS[u.ra].name}</b></span></div></li>`).join('')}</ul>` });
-  if (exUps.length) alerts.push({ kind: 'rank', html: `<p class="sys-big">RANK DE EXERCÍCIO</p><ul class="ex-ups">${exUps.map(u => `<li>${emblem(u.ra, 40)}<div><b>${esc(u.def.name)}</b><span>${u.rb === null ? 'Rank inicial' : RANKS[u.rb].name + ' →'} <b style="color:${TIERS[RANKS[u.ra].tier].glow}">${RANKS[u.ra].name}</b></span></div></li>`).join('')}</ul>` });
-  if (!alerts.length) toast('Treino atualizado', 'ok');
+  if (mUps.length) alerts.push({ kind: 'rank', html: `<p class="sys-big">MUSCLE RANK</p>${bodyMap(after.muscles, null)}<ul class="ex-ups">${mUps.map(u => `<li>${emblem(u.ra, 40)}<div><b>${u.m.name}</b><span>${u.rb === null ? 'Initial rank' : RANKS[u.rb].name + ' →'} <b style="color:${TIERS[RANKS[u.ra].tier].glow}">${RANKS[u.ra].name}</b></span></div></li>`).join('')}</ul>` });
+  if (exUps.length) alerts.push({ kind: 'rank', html: `<p class="sys-big">EXERCISE RANK</p><ul class="ex-ups">${exUps.map(u => `<li>${emblem(u.ra, 40)}<div><b>${esc(u.def.name)}</b><span>${u.rb === null ? 'Initial rank' : RANKS[u.rb].name + ' →'} <b style="color:${TIERS[RANKS[u.ra].tier].glow}">${RANKS[u.ra].name}</b></span></div></li>`).join('')}</ul>` });
+  if (!alerts.length) toast('Workout updated', 'ok');
   queueAlerts(alerts);
 }
 
@@ -854,7 +864,7 @@ function nextAlert() {
   const a = alertQ.shift(); if (!a) return;
   const m = $('#modal');
   m.innerHTML = `<div class="sys-window k-${a.kind}">
-    <div class="sys-head"><span class="sys-icon">!</span><span>NOTIFICAÇÃO</span></div>
+    <div class="sys-head"><span class="sys-icon">!</span><span>NOTIFICATION</span></div>
     <div class="sys-body">${a.html}</div>
     <button class="btn primary wide" data-act="mclose">OK</button>
   </div>${a.kind === 'level' || a.kind === 'rank' ? '<div class="burst"></div>' : ''}`;
@@ -862,13 +872,13 @@ function nextAlert() {
   if (navigator.vibrate && (a.kind === 'pr' || a.kind === 'level')) navigator.vibrate([30, 40, 60]);
 }
 
-function sysConfirm(text, okLabel = 'CONFIRMAR') {
+function sysConfirm(text, okLabel = 'CONFIRM') {
   return new Promise(res => {
     const m = $('#modal');
     m.innerHTML = `<div class="sys-window k-warn">
-      <div class="sys-head"><span class="sys-icon">!</span><span>AVISO</span></div>
+      <div class="sys-head"><span class="sys-icon">!</span><span>WARNING</span></div>
       <div class="sys-body"><p>${text}</p></div>
-      <div class="btn-row"><button class="btn ghost" data-c="0">CANCELAR</button><button class="btn danger" data-c="1">${okLabel}</button></div>
+      <div class="btn-row"><button class="btn ghost" data-c="0">CANCEL</button><button class="btn danger" data-c="1">${okLabel}</button></div>
     </div>`;
     m.hidden = false; requestAnimationFrame(() => m.classList.add('open'));
     m.onclick = ev => {
@@ -888,9 +898,9 @@ function toast(msg, kind = '') {
 /* ---------- dados de exemplo ---------- */
 function demoData() {
   const plan = [
-    { name: 'Push — Peito & Ombros', ex: [['supino', 60, 8, 2.5], ['press_militar', 35, 8, 1.25], ['supino_incl_halt', 20, 10, 1], ['elev_lateral', 8, 12, 0.5], ['triceps_polia', 25, 12, 1.25]] },
-    { name: 'Pull — Costas & Bíceps', ex: [['peso_morto', 100, 5, 5], ['elevacoes', 0, 6, 1.25], ['remada_barra', 55, 8, 2.5], ['puxada', 50, 10, 2.5], ['curl_barra', 25, 10, 1.25]] },
-    { name: 'Legs — Pernas', ex: [['agachamento', 80, 6, 2.5], ['leg_press', 140, 10, 5], ['rdl', 70, 8, 2.5], ['leg_curl', 35, 12, 1.25], ['gemeos', 60, 12, 2.5]] },
+    { name: 'Push — Chest & Shoulders', ex: [['supino', 60, 8, 2.5], ['press_militar', 35, 8, 1.25], ['supino_incl_halt', 20, 10, 1], ['elev_lateral', 8, 12, 0.5], ['triceps_polia', 25, 12, 1.25]] },
+    { name: 'Pull — Back & Biceps', ex: [['peso_morto', 100, 5, 5], ['elevacoes', 0, 6, 1.25], ['remada_barra', 55, 8, 2.5], ['puxada', 50, 10, 2.5], ['curl_barra', 25, 10, 1.25]] },
+    { name: 'Legs', ex: [['agachamento', 80, 6, 2.5], ['leg_press', 140, 10, 5], ['rdl', 70, 8, 2.5], ['leg_curl', 35, 12, 1.25], ['gemeos', 60, 12, 2.5]] },
   ];
   const out = []; const start = new Date(); start.setDate(start.getDate() - 7 * 8);
   let bw = 77;
@@ -949,7 +959,7 @@ document.addEventListener('click', async ev => {
   }
   if (d.delex !== undefined) { draft.exercises.splice(+d.delex, 1); return renderEditor(); }
   if (d.delcustom) {
-    if (state.workouts.some(w => w.exercises.some(e => e.exId === d.delcustom))) return toast('Este exercício está em uso em treinos', 'bad');
+    if (state.workouts.some(w => w.exercises.some(e => e.exId === d.delcustom))) return toast('This exercise is used in workouts', 'bad');
     state.custom = state.custom.filter(c => c.id !== d.delcustom); save(); return render();
   }
   switch (d.act) {
@@ -959,8 +969,8 @@ document.addEventListener('click', async ev => {
     case 'pick': return openPicker();
     case 'mclose': return closeModal();
     case 'delete':
-      if (await sysConfirm('Apagar este treino? A EXP e os recordes associados serão recalculados.', 'APAGAR')) {
-        state.workouts = state.workouts.filter(w => w.id !== draft.id); save(); closeEditor(); render(); toast('Treino apagado');
+      if (await sysConfirm('Delete this workout? EXP and records will be recalculated.', 'DELETE')) {
+        state.workouts = state.workouts.filter(w => w.id !== draft.id); save(); closeEditor(); render(); toast('Workout deleted');
       }
       return;
     case 'export': {
@@ -969,11 +979,11 @@ document.addEventListener('click', async ev => {
       setTimeout(() => URL.revokeObjectURL(a.href), 1000); return;
     }
     case 'demo':
-      if (state.workouts.length && !(await sysConfirm('Substituir os teus treinos atuais por dados de exemplo?', 'SUBSTITUIR'))) return;
-      state.workouts = demoData(); save(); render(); toast('Dados de exemplo carregados', 'ok'); return;
+      if (state.workouts.length && !(await sysConfirm('Replace your current workouts with sample data?', 'REPLACE'))) return;
+      state.workouts = demoData(); save(); render(); toast('Sample data loaded', 'ok'); return;
     case 'reset':
-      if (await sysConfirm('Apagar TODOS os dados? Esta ação não pode ser desfeita.', 'APAGAR TUDO')) {
-        state = defaultState(); save(); render(); toast('Dados apagados');
+      if (await sysConfirm('Delete ALL data? This cannot be undone.', 'DELETE ALL')) {
+        state = defaultState(); save(); render(); toast('Data deleted');
       }
       return;
   }
@@ -998,9 +1008,9 @@ document.addEventListener('submit', ev => {
   const f = ev.target, fd = new FormData(f);
   if (f.id === 'profile-form') {
     const bw = num(fd.get('bw'));
-    if (bw < 25 || bw > 300) return toast('Peso corporal inválido', 'bad');
-    state.profile = { name: String(fd.get('name')).trim() || 'Caçador', bw, sex: fd.get('sex'), rest: clamp(Math.round(num(fd.get('rest')) || 90), 15, 600) };
-    save(); render(); toast('Perfil guardado', 'ok');
+    if (bw < 25 || bw > 300) return toast('Invalid bodyweight', 'bad');
+    state.profile = { name: String(fd.get('name')).trim() || 'Hunter', bw, sex: fd.get('sex'), rest: clamp(Math.round(num(fd.get('rest')) || 90), 15, 600) };
+    save(); render(); toast('Profile saved', 'ok');
   }
   if (f.id === 'custom-form') {
     const ex = { id: 'c_' + uid(), name: String(fd.get('name')).trim(), group: fd.get('group'), bw: !!fd.get('bw'), std: null, custom: true, region: 'upper' };
@@ -1016,9 +1026,9 @@ document.addEventListener('change', ev => {
   file.text().then(txt => {
     const d = JSON.parse(txt);
     if (!Array.isArray(d.workouts)) throw new Error();
-    state = { ...defaultState(), profile: { ...defaultState().profile, ...d.profile }, workouts: d.workouts, custom: d.custom || [], tab: 'status' };
-    save(); render(); toast('Cópia importada', 'ok');
-  }).catch(() => toast('Ficheiro inválido', 'bad'));
+    state = migrate({ ...defaultState(), profile: { ...defaultState().profile, ...d.profile }, workouts: d.workouts, custom: d.custom || [], tab: 'status' });
+    save(); render(); toast('Backup imported', 'ok');
+  }).catch(() => toast('Invalid file', 'bad'));
 });
 
 document.addEventListener('keydown', ev => {

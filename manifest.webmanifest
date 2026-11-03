@@ -1,14 +1,14 @@
 {
   "name": "Iron System",
   "short_name": "Iron System",
-  "description": "Regista os teus treinos, bate recordes e sobe de rank.",
+  "description": "Log your workouts, break records and rank up.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#02040b",
   "theme_color": "#030712",
-  "lang": "pt-PT",
+  "lang": "en",
   "icons": [
     { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
   ]

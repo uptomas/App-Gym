@@ -320,9 +320,9 @@ input[type="date"] { color-scheme: dark; }
 .set.pr-w .set-n { color: #1a1000; background: var(--pr-w); border-color: var(--pr-w); box-shadow: 0 0 10px var(--pr-w); }
 .set.pr-v:not(.pr-w) .set-n { color: #00151a; background: var(--pr-v); border-color: var(--pr-v); }
 .set.pr-w::after, .set.pr-v::after { position: absolute; top: -8px; right: 40px; font-family: var(--hd); font-size: 8px; font-weight: 700; letter-spacing: .08em; padding: 1px 6px; }
-.set.pr-w::after { content: '▲ PR PESO'; background: var(--pr-w); color: #1a1000; box-shadow: 0 0 10px var(--pr-w); }
-.set.pr-v::after { content: '◆ PR VOLUME'; background: var(--pr-v); color: #00151a; box-shadow: 0 0 10px var(--pr-v); }
-.set.pr-w.pr-v::after { content: '▲◆ PR PESO + VOLUME'; background: linear-gradient(90deg, var(--pr-w), var(--pr-v)); }
+.set.pr-w::after { content: '▲ WEIGHT PR'; background: var(--pr-w); color: #1a1000; box-shadow: 0 0 10px var(--pr-w); }
+.set.pr-v::after { content: '◆ VOLUME PR'; background: var(--pr-v); color: #00151a; box-shadow: 0 0 10px var(--pr-v); }
+.set.pr-w.pr-v::after { content: '▲◆ WEIGHT + VOLUME PR'; background: linear-gradient(90deg, var(--pr-w), var(--pr-v)); }
 .set.pr-w .set-vol, .set.pr-v .set-vol { color: #fff; }
 .add-set { margin-top: 8px; }
 
