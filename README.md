@@ -40,3 +40,4 @@ To use it on your phone, publish it with **GitHub Pages** (Settings â†’ Pages â†
 - `styles.css`: visual theme
 - `app.js`: logic (workouts, PRs, EXP, ranking, SVG emblems, muscle map)
 - `sw.js` and `manifest.webmanifest`: offline support / install
+- `apple-touch-icon.png`, `icon-*.png`, `favicon-32.png`: app icons
