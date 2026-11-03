@@ -16,6 +16,12 @@ A gamified gym tracker: log your workouts, break personal records and climb the 
   - Shows the 1RM you need for the next division.
   - Male and female strength standards (choose in Profile).
 - **RPG progression**: EXP per workout (volume + PR bonus), levels, titles, stats (Strength, Vitality, Endurance, Discipline), daily and weekly quests, weekly training streak.
+- **Progress tab**: interactive weight-over-time charts (drag to read any point) with 1M/3M/6M/1Y/All ranges:
+  - **Bodyweight**: log weigh-ins, set a goal weight (dashed goal line + progress bar).
+  - **Load per exercise**: top set, estimated 1RM, best set volume or session volume, with your target line.
+  - **Weekly volume** bar chart.
+- **Targets**: set the weight you want to lift for any exercise; reaching it completes a quest (+200 EXP).
+- **~90 exercises** in the library (barbell, dumbbell, machine, cable, bodyweight and Olympic lifts).
 - **Records per exercise**: heaviest weight, best set volume, estimated 1RM, progress chart and history.
 - **Rest timer** that starts automatically when you log the reps of a set (±15 s, vibrates at the end; duration set in Profile).
 - Custom exercises, JSON backup export/import, sample data.

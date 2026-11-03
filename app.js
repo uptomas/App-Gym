@@ -96,6 +96,75 @@ const LIB = [
   ['triceps_frances', 'Skull crusher', 'Arms', 'u', 0, [0.15, 0.3, 0.5, 0.7, 0.9]],
   ['abd_polia', 'Cable crunch', 'Core', 'u', 0, [0.3, 0.5, 0.75, 1.0, 1.3]],
 ].map(([id, name, group, reg, bw, std, ph]) => ({ id, name, group, region: reg === 'l' ? 'lower' : 'upper', bw: !!bw, std, perHand: !!ph }));
+// mais exercícios: [id, nome, grupo, região, peso corporal, normas (null = sem rank), por halter, músculos]
+const EXTRA = [
+  ['decline_bench', 'Decline bench press', 'Chest', 'u', 0, [0.55, 0.85, 1.3, 1.8, 2.1], 0, ['chest']],
+  ['smith_bench', 'Smith machine bench press', 'Chest', 'u', 0, [0.45, 0.7, 1.15, 1.6, 1.9], 0, ['chest']],
+  ['chest_press', 'Machine chest press', 'Chest', 'u', 0, [0.4, 0.65, 1.0, 1.4, 1.75], 0, ['chest']],
+  ['incline_machine', 'Incline machine press', 'Chest', 'u', 0, [0.35, 0.6, 0.9, 1.25, 1.6], 0, ['chest']],
+  ['db_fly', 'Dumbbell fly', 'Chest', 'u', 0, [0.08, 0.15, 0.25, 0.35, 0.45], 1, ['chest']],
+  ['cable_fly', 'Cable crossover', 'Chest', 'u', 0, [0.1, 0.2, 0.3, 0.45, 0.6], 1, ['chest']],
+  ['pushup', 'Push-up', 'Chest', 'u', 1, null, 0, []],
+  ['pendlay', 'Pendlay row', 'Back', 'u', 0, [0.45, 0.7, 0.95, 1.4, 1.65], 0, ['back']],
+  ['tbar_row', 'T-bar row', 'Back', 'u', 0, [0.5, 0.8, 1.1, 1.5, 1.9], 0, ['back']],
+  ['machine_row', 'Machine row', 'Back', 'u', 0, [0.5, 0.75, 1.05, 1.45, 1.8], 0, ['back']],
+  ['chinup', 'Chin-up', 'Back', 'u', 1, [1.0, 1.15, 1.35, 1.65, 1.9], 0, ['back', 'biceps']],
+  ['close_pulldown', 'Close-grip pulldown', 'Back', 'u', 0, [0.5, 0.75, 1.0, 1.3, 1.6], 0, ['back']],
+  ['straight_arm', 'Straight-arm pulldown', 'Back', 'u', 0, [0.2, 0.35, 0.5, 0.7, 0.9], 0, ['back']],
+  ['sumo_dl', 'Sumo deadlift', 'Back', 'l', 0, [1.0, 1.5, 2.0, 2.5, 3.0], 0, ['back', 'glutes', 'hamstrings']],
+  ['rack_pull', 'Rack pull', 'Back', 'l', 0, [1.1, 1.65, 2.2, 2.75, 3.3], 0, ['back']],
+  ['shrug', 'Barbell shrug', 'Back', 'u', 0, [0.75, 1.1, 1.6, 2.1, 2.6], 0, ['back']],
+  ['back_ext', 'Back extension', 'Back', 'l', 1, null, 0, []],
+  ['hack_squat', 'Hack squat', 'Legs', 'l', 0, [0.75, 1.25, 1.75, 2.5, 3.0], 0, ['quads']],
+  ['smith_squat', 'Smith machine squat', 'Legs', 'l', 0, [0.7, 1.15, 1.45, 2.0, 2.5], 0, ['quads', 'glutes']],
+  ['goblet', 'Goblet squat', 'Legs', 'l', 0, [0.25, 0.4, 0.6, 0.8, 1.0], 0, ['quads']],
+  ['walking_lunge', 'Walking lunge (dumbbells)', 'Legs', 'l', 0, [0.12, 0.22, 0.35, 0.5, 0.65], 1, ['quads', 'glutes']],
+  ['step_up', 'Step-up (dumbbells)', 'Legs', 'l', 0, [0.1, 0.2, 0.32, 0.45, 0.6], 1, ['quads', 'glutes']],
+  ['good_morning', 'Good morning', 'Legs', 'l', 0, [0.4, 0.6, 0.9, 1.2, 1.5], 0, ['hamstrings']],
+  ['seated_leg_curl', 'Seated leg curl', 'Legs', 'l', 0, [0.45, 0.65, 0.95, 1.25, 1.6], 0, ['hamstrings']],
+  ['glute_bridge', 'Glute bridge (barbell)', 'Legs', 'l', 0, [0.7, 1.15, 1.8, 2.5, 3.2], 0, ['glutes']],
+  ['hip_abduction', 'Hip abduction (machine)', 'Legs', 'l', 0, [0.5, 0.8, 1.2, 1.6, 2.0], 0, ['glutes']],
+  ['hip_adduction', 'Hip adduction (machine)', 'Legs', 'l', 0, [0.5, 0.8, 1.2, 1.6, 2.0], 0, []],
+  ['cable_kickback', 'Cable glute kickback', 'Legs', 'l', 0, [0.1, 0.2, 0.3, 0.45, 0.6], 0, ['glutes']],
+  ['seated_calf', 'Seated calf raise', 'Legs', 'l', 0, [0.5, 0.85, 1.25, 1.75, 2.25], 0, ['calves']],
+  ['standing_calf', 'Standing calf raise (Smith)', 'Legs', 'l', 0, [0.75, 1.2, 1.7, 2.3, 3.0], 0, ['calves']],
+  ['arnold', 'Arnold press', 'Shoulders', 'u', 0, [0.12, 0.22, 0.33, 0.46, 0.6], 1, ['shoulders']],
+  ['machine_shoulder', 'Machine shoulder press', 'Shoulders', 'u', 0, [0.35, 0.55, 0.8, 1.1, 1.4], 0, ['shoulders']],
+  ['push_press', 'Push press', 'Shoulders', 'u', 0, [0.45, 0.7, 1.0, 1.3, 1.6], 0, ['shoulders']],
+  ['cable_lateral', 'Cable lateral raise', 'Shoulders', 'u', 0, [0.04, 0.08, 0.13, 0.2, 0.26], 1, ['shoulders']],
+  ['rear_delt', 'Rear delt fly', 'Shoulders', 'u', 0, [0.04, 0.08, 0.14, 0.2, 0.28], 1, ['shoulders']],
+  ['reverse_pec', 'Reverse pec deck', 'Shoulders', 'u', 0, [0.25, 0.4, 0.6, 0.8, 1.0], 0, ['shoulders']],
+  ['front_raise', 'Front raise', 'Shoulders', 'u', 0, [0.06, 0.11, 0.18, 0.26, 0.34], 1, ['shoulders']],
+  ['upright_row', 'Upright row', 'Shoulders', 'u', 0, [0.3, 0.45, 0.65, 0.85, 1.05], 0, ['shoulders']],
+  ['landmine_press', 'Landmine press', 'Shoulders', 'u', 0, [0.25, 0.4, 0.6, 0.8, 1.0], 0, ['shoulders']],
+  ['hammer', 'Hammer curl', 'Arms', 'u', 0, [0.1, 0.2, 0.32, 0.46, 0.6], 1, ['biceps']],
+  ['preacher', 'Preacher curl (EZ bar)', 'Arms', 'u', 0, [0.18, 0.33, 0.5, 0.7, 0.9], 0, ['biceps']],
+  ['ez_curl', 'EZ bar curl', 'Arms', 'u', 0, [0.2, 0.38, 0.57, 0.8, 1.05], 0, ['biceps']],
+  ['cable_curl', 'Cable curl', 'Arms', 'u', 0, [0.2, 0.35, 0.55, 0.75, 1.0], 0, ['biceps']],
+  ['incline_curl', 'Incline dumbbell curl', 'Arms', 'u', 0, [0.08, 0.15, 0.25, 0.36, 0.48], 1, ['biceps']],
+  ['concentration', 'Concentration curl', 'Arms', 'u', 0, [0.08, 0.15, 0.24, 0.34, 0.45], 1, ['biceps']],
+  ['close_grip', 'Close-grip bench press', 'Arms', 'u', 0, [0.45, 0.7, 1.05, 1.45, 1.75], 0, ['triceps']],
+  ['overhead_ext', 'Overhead triceps extension (cable)', 'Arms', 'u', 0, [0.2, 0.35, 0.55, 0.75, 1.0], 0, ['triceps']],
+  ['db_overhead_ext', 'Overhead dumbbell extension', 'Arms', 'u', 0, [0.15, 0.25, 0.4, 0.55, 0.7], 0, ['triceps']],
+  ['rope_pushdown', 'Rope pushdown', 'Arms', 'u', 0, [0.2, 0.35, 0.52, 0.72, 0.95], 0, ['triceps']],
+  ['bench_dips', 'Bench dips', 'Arms', 'u', 1, null, 0, []],
+  ['wrist_curl', 'Wrist curl', 'Arms', 'u', 0, null, 0, []],
+  ['machine_crunch', 'Ab crunch machine', 'Core', 'u', 0, [0.35, 0.6, 0.9, 1.2, 1.5], 0, ['abs']],
+  ['hanging_leg', 'Hanging leg raise', 'Core', 'u', 1, null, 0, []],
+  ['decline_situp', 'Decline sit-up', 'Core', 'u', 1, null, 0, []],
+  ['russian_twist', 'Russian twist', 'Core', 'u', 0, null, 0, []],
+  ['power_clean', 'Power clean', 'Other', 'l', 0, [0.5, 0.75, 1.0, 1.35, 1.65], 0, ['back', 'glutes']],
+  ['hang_clean', 'Hang clean', 'Other', 'l', 0, [0.45, 0.7, 0.95, 1.25, 1.55], 0, ['back', 'glutes']],
+  ['snatch', 'Snatch', 'Other', 'l', 0, [0.4, 0.6, 0.85, 1.1, 1.35], 0, ['back', 'shoulders']],
+  ['thruster', 'Thruster', 'Other', 'l', 0, [0.4, 0.6, 0.85, 1.1, 1.35], 0, ['quads', 'shoulders']],
+  ['kb_swing', 'Kettlebell swing', 'Other', 'l', 0, null, 0, []],
+  ['farmer_walk', "Farmer's walk (per hand)", 'Other', 'u', 0, null, 1, []],
+];
+const EXTRA_MUSCLES = {};
+for (const [id, name, group, reg, bw, std, ph, mus] of EXTRA) {
+  LIB.push({ id, name, group, region: reg === 'l' ? 'lower' : 'upper', bw: !!bw, std, perHand: !!ph });
+  if (mus.length) EXTRA_MUSCLES[id] = mus;
+}
 const LIB_MAP = Object.fromEntries(LIB.map(e => [e.id, e]));
 
 /* músculos (estilo mapa muscular) — main: conta para o rank geral */
@@ -112,6 +181,7 @@ const MUSCLE_OF = {
   leg_ext: ['quads'], leg_curl: ['hamstrings'], gemeos: ['calves'],
   press_militar: ['shoulders'], press_halt: ['shoulders'], elev_lateral: ['shoulders'], face_pull: ['shoulders'],
   curl_barra: ['biceps'], curl_halt: ['biceps'], triceps_polia: ['triceps'], triceps_frances: ['triceps'], abd_polia: ['abs'],
+  ...EXTRA_MUSCLES,
 };
 
 function getEx(id) { return LIB_MAP[id] || state.custom.find(c => c.id === id); }
@@ -126,7 +196,7 @@ function stdFor(def, sex) {
 /* ---------- estado ---------- */
 const LS_KEY = 'ironsystem.v1';
 function defaultState() {
-  return { profile: { name: 'Hunter', bw: 75, sex: 'm', rest: 90 }, workouts: [], custom: [], tab: 'status' };
+  return { profile: { name: 'Hunter', bw: 75, sex: 'm', rest: 90, bwGoal: null }, workouts: [], custom: [], goals: {}, bwLog: [], tab: 'status', range: '3M', metric: 'w' };
 }
 function load() {
   try {
@@ -176,12 +246,12 @@ function compute(st = state, excludeId = null) {
     let wVol = 0, wPr = 0;
     w.exercises.forEach((e, ei) => {
       const def = getEx(e.exId); if (!def) return;
-      let topW = null, topV = null, topE = 0;
+      let topW = null, topV = null, topE = 0, sv = 0;
       e.sets.forEach((set, si) => {
         const wt = num(set.w), r = Math.round(num(set.r)); if (r <= 0) return;
         const load = def.bw ? bw + wt : wt;
         const vol = load * r;
-        wVol += vol; totalSets++; totalReps += r;
+        wVol += vol; sv += vol; totalSets++; totalReps += r;
         if (!topW || wt > topW.w || (wt === topW.w && r > topW.r)) topW = { w: wt, r, si };
         if (!topV || vol > topV.v) topV = { v: vol, w: wt, r, si };
         topE = Math.max(topE, e1rm(load, r));
@@ -208,7 +278,7 @@ function compute(st = state, excludeId = null) {
         if (s.bestMMR === null || m > s.bestMMR) { s.bestMMR = m; s.bestRatio = ratio; }
       }
       s.sessions++;
-      s.hist.push({ date: w.date, e1: topE, w: topW.w, v: topV.v, wid: w.id });
+      s.hist.push({ date: w.date, e1: topE, w: topW.w, v: topV.v, sv, wid: w.id });
       s.last = { date: w.date, sets: e.sets };
     });
     const wxp = 30 + Math.round(wVol / 100) + wPr * 50;
@@ -235,11 +305,14 @@ function compute(st = state, excludeId = null) {
   const t = todayISO();
   const last30 = ws.filter(w => daysBetween(w.date, t) >= 0 && daysBetween(w.date, t) < 30).length;
   const thisWeek = ws.filter(w => weekKey(w.date) === weekKey(t)).length;
+  // objetivos de peso atingidos: +200 EXP cada
+  const goalsReached = Object.entries(st.goals || {}).filter(([id, g]) => num(g) > 0 && ex[id] && ex[id].bestW.w >= num(g)).map(([id]) => id);
+  xp += goalsReached.length * 200;
   const lv = levelFromXP(xp);
 
   return {
     ex, prFlags, prList, perWorkout, xp, level: lv, totalVol, totalSets, totalReps,
-    ranked, muscles, musclesRanked, mmr, rank: rankIdx(mmr), placement: musclesRanked < 4, streak, last30, thisWeek,
+    goalsReached, ranked, muscles, musclesRanked, mmr, rank: rankIdx(mmr), placement: musclesRanked < 4, streak, last30, thisWeek,
     trainedToday: ws.some(w => w.date === t), count: ws.length,
     stats: {
       STR: 10 + Math.round(mmr / 8),
@@ -541,6 +614,123 @@ const VIEWS = {
     </section>`;
   },
 
+  progress() {
+    const RANGES = { '1M': 30, '3M': 91, '6M': 182, '1Y': 365, ALL: 1e6 };
+    const range = RANGES[state.range] ? state.range : '3M';
+    const inRange = d => daysBetween(d, todayISO()) <= RANGES[range];
+    const p = state.profile;
+
+    /* --- peso corporal --- */
+    const bwAll = bodyweightSeries();
+    const bwPts = bwAll.filter(x => inRange(x.t));
+    const bwNow = bwAll.length ? bwAll[bwAll.length - 1].v : num(p.bw);
+    const bwGoal = num(p.bwGoal) || null;
+    const bwDelta = bwPts.length > 1 ? bwPts[bwPts.length - 1].v - bwPts[0].v : 0;
+    let bwGoalHtml = '';
+    if (bwGoal) {
+      const start = bwAll.length ? bwAll[0].v : bwNow;
+      const left = bwNow - bwGoal;
+      const pct = start === bwGoal ? 100 : clamp((start - bwNow) / (start - bwGoal) * 100, 0, 100);
+      bwGoalHtml = `<div class="goal-box"><div class="xp-row"><span>GOAL ${fmtKg(bwGoal)}</span><span>${Math.abs(left) < 0.05 ? 'REACHED ✓' : `${fmt(Math.abs(left))} kg to ${left > 0 ? 'lose' : 'gain'}`}</span></div><div class="bar gold-bar"><i style="width:${pct}%"></i></div></div>`;
+    }
+
+    /* --- carga por exercício --- */
+    const exList = Object.values(C.ex).sort((a, b) => b.last.date.localeCompare(a.last.date));
+    const exId = state.progEx && C.ex[state.progEx] ? state.progEx : exList[0]?.id;
+    const s = exId ? C.ex[exId] : null, def = exId ? getEx(exId) : null;
+    const METRICS = { w: 'Top set', e1: 'Est. 1RM', v: 'Best set vol.', sv: 'Session vol.' };
+    const metric = METRICS[state.metric] ? state.metric : 'w';
+    const goal = exId ? num(state.goals?.[exId]) || null : null;
+    let loadHtml = '<p class="empty">Log workouts to see how your loads evolve.</p>';
+    if (s) {
+      const pts = s.hist.filter(h => inRange(h.date)).map(h => ({ t: h.date, v: h[metric] }));
+      const isVol = metric === 'v' || metric === 'sv';
+      const unit = def.bw && metric === 'w' ? 'kg added' : 'kg';
+      const first = pts[0]?.v, last = pts[pts.length - 1]?.v;
+      const diff = pts.length > 1 ? last - first : 0;
+      const pctCh = pts.length > 1 && first ? diff / first * 100 : 0;
+      const goalLine = goal && metric === 'w' ? goal : null;
+      let goalBox = '';
+      if (goal) {
+        const start = s.hist[0].w, cur = s.bestW.w;
+        const pct = cur >= goal ? 100 : goal <= start ? 0 : clamp((cur - start) / (goal - start) * 100, 0, 100);
+        goalBox = `<div class="goal-box"><div class="xp-row"><span>TARGET ${def.bw ? '+' : ''}${fmtKg(goal)}</span><span>${cur >= goal ? 'REACHED ✓ +200 EXP' : `best ${fmtKg(cur)} · ${fmt(goal - cur)} kg to go`}</span></div><div class="bar gold-bar"><i style="width:${pct}%"></i></div></div>`;
+      }
+      loadHtml = `
+        <label class="field-lbl">Exercise
+          <select id="prog-ex">${exList.map(e => `<option value="${e.id}" ${e.id === exId ? 'selected' : ''}>${esc(getEx(e.id)?.name)}</option>`).join('')}</select>
+        </label>
+        <div class="chips seg">${Object.entries(METRICS).map(([k, l]) => `<button class="chip ${k === metric ? 'on' : ''}" data-metric="${k}">${l}</button>`).join('')}</div>
+        <div class="summary">
+          <div><span>NOW</span><b>${pts.length ? fmt(last, isVol ? 0 : 1) : '—'}<small> ${unit}</small></b></div>
+          <div><span>CHANGE</span><b class="${diff > 0 ? 'up' : diff < 0 ? 'down' : ''}">${diff > 0 ? '+' : ''}${fmt(diff, isVol ? 0 : 1)}<small> ${pts.length > 1 ? `(${pctCh > 0 ? '+' : ''}${fmt(pctCh, 0)}%)` : ''}</small></b></div>
+          <div><span>SESSIONS</span><b>${pts.length}</b></div>
+        </div>
+        ${lineChart('load', pts, { goal: goalLine, unit, digits: isVol ? 0 : 1, empty: 'Log this exercise at least twice in this period to see the chart.' })}
+        ${goalBox}
+        <form class="inline-form" id="exgoal-form" data-ex="${exId}">
+          <input name="goal" inputmode="decimal" placeholder="${def.bw ? 'Target added weight (kg)' : 'Target weight (kg)'}" value="${goal ? esc(goal) : ''}">
+          <button class="btn sm primary" type="submit">${goal ? 'UPDATE' : 'SET TARGET'}</button>
+          ${goal ? `<button class="icon-btn sm" type="button" data-act="cleargoal" data-ex="${exId}" aria-label="Remove target">${IC.x}</button>` : ''}
+        </form>`;
+    }
+
+    /* --- volume semanal --- */
+    const weekVol = {};
+    for (const w of state.workouts) if (inRange(w.date)) weekVol[weekKey(w.date)] = (weekVol[weekKey(w.date)] || 0) + (C.perWorkout[w.id]?.vol || 0);
+    const wkKeys = Object.keys(weekVol).sort();
+    const bars = [];
+    if (wkKeys.length) {
+      const d = dateObj(wkKeys[0]), end = weekKey(todayISO());
+      while (d.toISOString().slice(0, 10) <= end) { const k = d.toISOString().slice(0, 10); bars.push({ t: k, v: weekVol[k] || 0 }); d.setDate(d.getDate() + 7); }
+    }
+
+    /* --- objetivos ativos --- */
+    const goals = Object.entries(state.goals || {}).filter(([id, g]) => num(g) > 0 && getEx(id));
+
+    return `
+    <div class="chips seg range">${Object.keys(RANGES).map(k => `<button class="chip ${k === range ? 'on' : ''}" data-range="${k}">${k}</button>`).join('')}</div>
+
+    <section class="panel">
+      <div class="panel-title"><span>BODYWEIGHT</span></div>
+      <div class="summary">
+        <div><span>NOW</span><b>${fmt(bwNow)}<small> kg</small></b></div>
+        <div><span>CHANGE</span><b class="${bwDelta && bwGoal ? ((bwGoal - bwPts[0].v) * bwDelta > 0 ? 'up' : 'down') : ''}">${bwDelta > 0 ? '+' : ''}${fmt(bwDelta)}<small> kg</small></b></div>
+        <div><span>ENTRIES</span><b>${bwPts.length}</b></div>
+      </div>
+      ${lineChart('bw', bwPts, { goal: bwGoal, unit: 'kg', digits: 1, color: '#b98cff', empty: 'Log your weight at least twice in this period to see the chart.' })}
+      ${bwGoalHtml}
+      <form class="inline-form" id="bwlog-form">
+        <input name="bw" inputmode="decimal" placeholder="Today's weight (kg)">
+        <button class="btn sm primary" type="submit">LOG</button>
+      </form>
+      <form class="inline-form" id="bwgoal-form">
+        <input name="goal" inputmode="decimal" placeholder="Goal weight (kg)" value="${bwGoal ? esc(bwGoal) : ''}">
+        <button class="btn sm" type="submit">${bwGoal ? 'UPDATE GOAL' : 'SET GOAL'}</button>
+      </form>
+    </section>
+
+    <section class="panel">
+      <div class="panel-title"><span>LOAD PROGRESS</span></div>
+      ${loadHtml}
+    </section>
+
+    <section class="panel">
+      <div class="panel-title"><span>WEEKLY VOLUME</span></div>
+      ${barChart('vol', bars)}
+    </section>
+
+    ${goals.length ? `<section class="panel">
+      <div class="panel-title"><span>TARGETS</span></div>
+      <ul class="goal-list">${goals.map(([id, g]) => {
+        const st = C.ex[id], cur = st ? st.bestW.w : 0, done = cur >= num(g);
+        const start = st ? st.hist[0].w : 0;
+        const pct = done ? 100 : num(g) <= start ? 0 : clamp((cur - start) / (num(g) - start) * 100, 0, 100);
+        return `<li class="${done ? 'done' : ''}" data-progex="${id}"><div class="xp-row"><b>${esc(getEx(id).name)}</b><span>${fmt(cur)} / ${fmt(num(g))} kg${done ? ' ✓' : ''}</span></div><div class="bar gold-bar"><i style="width:${pct}%"></i></div></li>`;
+      }).join('')}</ul>
+    </section>` : ''}`;
+  },
+
   records() {
     const list = Object.values(C.ex).sort((a, b) => b.last.date.localeCompare(a.last.date));
     if (!list.length) return `<section class="panel"><div class="panel-title"><span>RECORDS</span></div><p class="empty">Log workouts to see your records for each exercise.</p></section>`;
@@ -567,6 +757,7 @@ const VIEWS = {
             <div class="rbox e"><span>ESTIMATED 1RM</span><b>${fmtKg(s.bestE1)}</b><small>${ri !== null ? RANKS[ri].name : 'unranked'}</small></div>
           </div>
           ${chart(s.hist)}
+          <button class="btn sm ghost wide" data-progex="${s.id}">VIEW PROGRESS & TARGET ›</button>
           <ul class="hist">${[...s.hist].reverse().slice(0, 8).map(h => `<li><span>${fmtDate(h.date)}</span><span>top ${lbl(h.w)}</span><span>vol ${fmtKg(h.v, 0)}</span><span>1RM ${fmt(h.e1, 0)}</span></li>`).join('')}</ul>
         </details>`;
       }).join('')}`;
@@ -635,6 +826,116 @@ function chart(hist) {
   </svg></div>`;
 }
 
+
+/* ---------- gráficos de evolução (peso/tempo) ---------- */
+function bodyweightSeries() {
+  const map = {};
+  for (const w of state.workouts) if (num(w.bw)) map[w.date] = num(w.bw);
+  for (const e of state.bwLog || []) if (num(e.bw)) map[e.date] = num(e.bw); // registos manuais têm prioridade
+  return Object.entries(map).sort((a, b) => a[0].localeCompare(b[0])).map(([t, v]) => ({ t, v }));
+}
+
+const CH = {}; // dados dos gráficos visíveis, para o cursor
+const CW = 340, CHH = 190, CL = 42, CR = 12, CT = 16, CB = 26;
+function niceTicks(mn, mx) {
+  const span = mx - mn, raw = span / 3, mag = Math.pow(10, Math.floor(Math.log10(raw || 1)));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(st => span / st <= 4) || mag * 10;
+  const out = []; for (let v = Math.ceil(mn / step) * step; v <= mx + 1e-9; v += step) out.push(v);
+  return out;
+}
+const shortNum = v => Math.abs(v) >= 10000 ? fmt(v / 1000, 0) + 'k' : Math.abs(v) >= 1000 ? fmt(v / 1000, 1) + 'k' : fmt(v, 1);
+
+function chartFrame(mn, mx, ts, Y) {
+  let g = niceTicks(mn, mx).map(v => `<line x1="${CL}" x2="${CW - CR}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" class="lc-grid"/>
+    <text x="${CL - 6}" y="${(Y(v) + 3.5).toFixed(1)}" class="lc-y">${shortNum(v)}</text>`).join('');
+  const t0 = ts[0], t1 = ts[ts.length - 1];
+  const lbl = [t0, t1]; if (ts.length > 2) lbl.splice(1, 0, t0 + (t1 - t0) / 2);
+  g += lbl.map((t, i) => {
+    const x = CL + (t1 === t0 ? 0 : (t - t0) / (t1 - t0)) * (CW - CL - CR);
+    const d = new Date(t).toISOString().slice(0, 10);
+    return `<text x="${x.toFixed(1)}" y="${CHH - 7}" class="lc-x" text-anchor="${i === 0 ? 'start' : i === lbl.length - 1 ? 'end' : 'middle'}">${fmtDateShort(d)}</text>`;
+  }).join('');
+  return g;
+}
+
+function lineChart(id, pts, o = {}) {
+  if (pts.length < 2) return `<p class="hint chart-empty">${o.empty || 'Not enough data yet.'}</p>`;
+  const color = o.color || '#5fd3ff';
+  const ts = pts.map(p => dateObj(p.t).getTime());
+  let mn = Math.min(...pts.map(p => p.v)), mx = Math.max(...pts.map(p => p.v));
+  if (o.goal) { mn = Math.min(mn, o.goal); mx = Math.max(mx, o.goal); }
+  const pad = (mx - mn) * 0.12 || Math.max(1, mx * 0.04); mn -= pad; mx += pad;
+  if (mn < 0 && Math.min(...pts.map(p => p.v)) >= 0) mn = 0;
+  const t0 = ts[0], span = (ts[ts.length - 1] - t0) || 1;
+  const X = t => CL + (t - t0) / span * (CW - CL - CR);
+  const Y = v => CT + (1 - (v - mn) / (mx - mn)) * (CHH - CT - CB);
+  const xy = pts.map((p, i) => [X(ts[i]), Y(p.v)]);
+  const line = xy.map(q => q.map(n => n.toFixed(1)).join(',')).join(' ');
+  CH[id] = { xy, pts, unit: o.unit || 'kg', digits: o.digits ?? 1 };
+  const last = xy[xy.length - 1];
+  const g = 'lg' + (gid++);
+  return `<div class="lc" data-chart="${id}" style="--c:${color}">
+    <div class="lc-read" id="${id}-read">${readout(CH[id], pts.length - 1)}</div>
+    <svg viewBox="0 0 ${CW} ${CHH}" role="img" aria-label="Progress chart">
+      <defs><linearGradient id="${g}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${color}" stop-opacity=".38"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient></defs>
+      ${chartFrame(mn, mx, ts, Y)}
+      ${o.goal ? `<line x1="${CL}" x2="${CW - CR}" y1="${Y(o.goal).toFixed(1)}" y2="${Y(o.goal).toFixed(1)}" class="lc-goal"/>
+        <text x="${CW - CR}" y="${(Y(o.goal) - 5).toFixed(1)}" class="lc-goal-t" text-anchor="end">GOAL ${fmt(o.goal)}</text>` : ''}
+      <polygon points="${xy[0][0].toFixed(1)},${CHH - CB} ${line} ${last[0].toFixed(1)},${CHH - CB}" fill="url(#${g})"/>
+      <polyline points="${line}" class="lc-line"/>
+      ${xy.length <= 60 ? xy.map(q => `<circle cx="${q[0].toFixed(1)}" cy="${q[1].toFixed(1)}" r="2.6" class="lc-pt"/>`).join('') : ''}
+      <line class="lc-cur" x1="${last[0]}" x2="${last[0]}" y1="${CT}" y2="${CHH - CB}"/>
+      <circle class="lc-dot" cx="${last[0]}" cy="${last[1]}" r="5"/>
+    </svg></div>`;
+}
+
+function barChart(id, bars) {
+  if (!bars.length || bars.every(b => !b.v)) return '<p class="hint chart-empty">No workouts in this period.</p>';
+  const mx = Math.max(...bars.map(b => b.v)) * 1.1, mn = 0;
+  const ts = bars.map(b => dateObj(b.t).getTime());
+  const n = bars.length, slot = (CW - CL - CR) / n, bw = Math.max(2, Math.min(26, slot * 0.7));
+  const X = i => CL + slot * (i + 0.5);
+  const Y = v => CT + (1 - (v - mn) / (mx - mn)) * (CHH - CT - CB);
+  const xy = bars.map((b, i) => [X(i), Y(b.v)]);
+  CH[id] = { xy, pts: bars, unit: 'kg', digits: 0, week: true };
+  // eixo x por semana: usa posições das barras
+  const lbl = [0, n - 1]; if (n > 2) lbl.splice(1, 0, Math.floor((n - 1) / 2));
+  const frame = niceTicks(mn, mx).map(v => `<line x1="${CL}" x2="${CW - CR}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" class="lc-grid"/>
+    <text x="${CL - 6}" y="${(Y(v) + 3.5).toFixed(1)}" class="lc-y">${shortNum(v)}</text>`).join('')
+    + [...new Set(lbl)].map((i, k, arr) => `<text x="${X(i).toFixed(1)}" y="${CHH - 7}" class="lc-x" text-anchor="${n === 1 ? 'middle' : k === 0 ? 'start' : k === arr.length - 1 ? 'end' : 'middle'}">${fmtDateShort(bars[i].t)}</text>`).join('');
+  let li = n - 1; while (li > 0 && !bars[li].v) li--;
+  const last = xy[li];
+  return `<div class="lc" data-chart="${id}" style="--c:#5fd3ff">
+    <div class="lc-read" id="${id}-read">${readout(CH[id], li)}</div>
+    <svg viewBox="0 0 ${CW} ${CHH}" role="img" aria-label="Weekly volume chart">
+      ${frame}
+      ${xy.map((q, i) => `<rect x="${(q[0] - bw / 2).toFixed(1)}" y="${q[1].toFixed(1)}" width="${bw.toFixed(1)}" height="${(CHH - CB - q[1]).toFixed(1)}" rx="2" class="lc-bar ${i === li ? 'sel' : ''}"/>`).join('')}
+      <line class="lc-cur" x1="${last[0]}" x2="${last[0]}" y1="${CT}" y2="${CHH - CB}"/>
+      <circle class="lc-dot" cx="${last[0]}" cy="${last[1]}" r="4"/>
+    </svg></div>`;
+}
+
+function readout(c, i) {
+  const p = c.pts[i];
+  const when = c.week ? `Week of ${fmtDateShort(p.t)}` : fmtDate(p.t);
+  return `<span>${when}</span><b>${fmt(p.v, c.digits)} <small>${c.unit}</small></b>`;
+}
+
+function scrub(ev) {
+  const wrap = ev.target.closest?.('.lc'); if (!wrap) return;
+  const c = CH[wrap.dataset.chart]; if (!c) return;
+  const svg = $('svg', wrap), r = svg.getBoundingClientRect();
+  const x = (ev.clientX - r.left) / r.width * CW;
+  let bi = 0; c.xy.forEach((q, i) => { if (Math.abs(q[0] - x) < Math.abs(c.xy[bi][0] - x)) bi = i; });
+  const [qx, qy] = c.xy[bi];
+  const cur = $('.lc-cur', svg), dot = $('.lc-dot', svg);
+  cur.setAttribute('x1', qx); cur.setAttribute('x2', qx); dot.setAttribute('cx', qx); dot.setAttribute('cy', qy);
+  $$('.lc-bar', svg).forEach((b, i) => b.classList.toggle('sel', i === bi));
+  $('.lc-read', wrap).innerHTML = readout(c, bi);
+}
+document.addEventListener('pointermove', scrub);
+document.addEventListener('pointerdown', scrub);
+
 /* ---------- editor de treino ---------- */
 let draft = null, baseline = null;
 
@@ -697,7 +998,7 @@ function exCard(e, ei) {
       </div>
       <button class="icon-btn" data-delex="${ei}" aria-label="Remove exercise">${IC.trash}</button>
     </div>
-    ${b ? `<div class="ex-rec"><span>Previous: ${prev || '—'}</span><span>Record: <b class="gold">${def.bw ? (b.bestW.w ? '+' + fmt(b.bestW.w) : 'BW') : fmt(b.bestW.w)}kg</b> · <b class="cyan">${fmt(b.bestVol.v, 0)} vol</b></span></div>` : '<div class="ex-rec"><span>First time — this workout sets your baseline.</span></div>'}
+    ${b ? `<div class="ex-rec"><span>Previous: ${prev || '—'}</span><span>Record: <b class="gold">${def.bw ? (b.bestW.w ? '+' + fmt(b.bestW.w) : 'BW') : fmt(b.bestW.w)}kg</b> · <b class="cyan">${fmt(b.bestVol.v, 0)} vol</b>${num(state.goals?.[e.exId]) ? ` · 🎯 ${fmt(num(state.goals[e.exId]))}kg` : ''}</span></div>` : '<div class="ex-rec"><span>First time — this workout sets your baseline.</span></div>'}
     <div class="sets">
       <div class="set-h"><span>SET</span><span>${def?.bw ? '+KG' : 'KG'}</span><span>REPS</span><span>VOLUME</span><span></span></div>
       ${e.sets.map((s, si) => `
@@ -854,6 +1155,8 @@ function saveDraft() {
   }).filter(Boolean);
   if (mUps.length) alerts.push({ kind: 'rank', html: `<p class="sys-big">MUSCLE RANK</p>${bodyMap(after.muscles, null)}<ul class="ex-ups">${mUps.map(u => `<li>${emblem(u.ra, 40)}<div><b>${u.m.name}</b><span>${u.rb === null ? 'Initial rank' : RANKS[u.rb].name + ' →'} <b style="color:${TIERS[RANKS[u.ra].tier].glow}">${RANKS[u.ra].name}</b></span></div></li>`).join('')}</ul>` });
   if (exUps.length) alerts.push({ kind: 'rank', html: `<p class="sys-big">EXERCISE RANK</p><ul class="ex-ups">${exUps.map(u => `<li>${emblem(u.ra, 40)}<div><b>${esc(u.def.name)}</b><span>${u.rb === null ? 'Initial rank' : RANKS[u.rb].name + ' →'} <b style="color:${TIERS[RANKS[u.ra].tier].glow}">${RANKS[u.ra].name}</b></span></div></li>`).join('')}</ul>` });
+  const newGoals = after.goalsReached.filter(id => !before.goalsReached.includes(id));
+  if (newGoals.length) alerts.push({ kind: 'pr', html: `<p class="sys-big gold">QUEST COMPLETE</p><p>Target reached:</p><ul class="ex-ups">${newGoals.map(id => `<li><span class="pr pr-w sm">🎯 TARGET</span><div><b>${esc(getEx(id).name)}</b><span>${fmtKg(num(state.goals[id]))} lifted</span></div></li>`).join('')}</ul><p class="reward">Reward: <b>+${newGoals.length * 200} EXP</b></p><p class="muted">Set a new target in Progress.</p>` });
   if (!alerts.length) toast('Workout updated', 'ok');
   queueAlerts(alerts);
 }
@@ -887,6 +1190,13 @@ function sysConfirm(text, okLabel = 'CONFIRM') {
       setTimeout(() => { m.hidden = true; m.innerHTML = ''; res(b.dataset.c === '1'); }, 180);
     };
   });
+}
+
+function logBodyweight(bw) {
+  const t = todayISO();
+  state.bwLog = (state.bwLog || []).filter(e => e.date !== t);
+  state.bwLog.push({ date: t, bw });
+  state.profile.bw = bw; save();
 }
 
 function toast(msg, kind = '') {
@@ -924,7 +1234,7 @@ function demoData() {
 
 /* ---------- eventos ---------- */
 document.addEventListener('click', async ev => {
-  const el = ev.target.closest('[data-tab],[data-act],[data-go],[data-edit],[data-addset],[data-delset],[data-delex],[data-pick],[data-copy],[data-filter],[data-delcustom],[data-muscle],[data-rest]');
+  const el = ev.target.closest('[data-tab],[data-act],[data-go],[data-edit],[data-addset],[data-delset],[data-delex],[data-pick],[data-copy],[data-filter],[data-delcustom],[data-muscle],[data-rest],[data-range],[data-metric],[data-progex]');
   if (!el) {
     if (ev.target.id === 'modal' && !$(".sys-window.k-warn")) closeModal();
     return;
@@ -937,6 +1247,9 @@ document.addEventListener('click', async ev => {
     rest.end += v * 1000; rest.total = Math.max(1, rest.total + v); return tickRest();
   }
   if (d.go) return go(d.go);
+  if (d.range) { state.range = d.range; save(); return render(false); }
+  if (d.metric) { state.metric = d.metric; save(); return render(false); }
+  if (d.progex) { state.progEx = d.progex; save(); return go('progress'); }
   if (d.edit) return openEditor(d.edit);
   if (d.filter) { state.recFilter = d.filter; save(); return render(); }
   if (d.pick) return addExercise(d.pick);
@@ -968,6 +1281,7 @@ document.addEventListener('click', async ev => {
     case 'save': return saveDraft();
     case 'pick': return openPicker();
     case 'mclose': return closeModal();
+    case 'cleargoal': delete state.goals[el.dataset.ex]; save(); render(false); return toast('Target removed');
     case 'delete':
       if (await sysConfirm('Delete this workout? EXP and records will be recalculated.', 'DELETE')) {
         state.workouts = state.workouts.filter(w => w.id !== draft.id); save(); closeEditor(); render(); toast('Workout deleted');
@@ -980,7 +1294,8 @@ document.addEventListener('click', async ev => {
     }
     case 'demo':
       if (state.workouts.length && !(await sysConfirm('Replace your current workouts with sample data?', 'REPLACE'))) return;
-      state.workouts = demoData(); save(); render(); toast('Sample data loaded', 'ok'); return;
+      state.workouts = demoData(); state.goals = { supino: 80, agachamento: 110, peso_morto: 140 }; state.profile.bwGoal = 74;
+      state.bwLog = state.workouts.filter((w, i) => i % 2).map(w => ({ date: w.date, bw: Math.round((num(w.bw) + (Math.random() - 0.5) * 0.6) * 10) / 10 })); save(); render(); toast('Sample data loaded', 'ok'); return;
     case 'reset':
       if (await sysConfirm('Delete ALL data? This cannot be undone.', 'DELETE ALL')) {
         state = defaultState(); save(); render(); toast('Data deleted');
@@ -1009,8 +1324,30 @@ document.addEventListener('submit', ev => {
   if (f.id === 'profile-form') {
     const bw = num(fd.get('bw'));
     if (bw < 25 || bw > 300) return toast('Invalid bodyweight', 'bad');
-    state.profile = { name: String(fd.get('name')).trim() || 'Hunter', bw, sex: fd.get('sex'), rest: clamp(Math.round(num(fd.get('rest')) || 90), 15, 600) };
+    if (bw !== num(state.profile.bw)) logBodyweight(bw);
+    state.profile = { ...state.profile, name: String(fd.get('name')).trim() || 'Hunter', bw, sex: fd.get('sex'), rest: clamp(Math.round(num(fd.get('rest')) || 90), 15, 600) };
     save(); render(); toast('Profile saved', 'ok');
+  }
+  if (f.id === 'bwlog-form') {
+    const bw = num(fd.get('bw'));
+    if (bw < 25 || bw > 300) return toast('Invalid bodyweight', 'bad');
+    logBodyweight(bw); render(false); toast(`Weight logged: ${fmtKg(bw)}`, 'ok');
+    const g = num(state.profile.bwGoal), series = bodyweightSeries();
+    if (g && series.length > 1) {
+      const prev = series[series.length - 2].v;
+      if ((prev - g) * (bw - g) <= 0 && prev !== g) queueAlerts([{ kind: 'pr', html: `<p class="sys-big gold">QUEST COMPLETE</p><p>Bodyweight goal reached: <b>${fmtKg(g)}</b></p><p class="muted">Set a new goal whenever you're ready.</p>` }]);
+    }
+    return;
+  }
+  if (f.id === 'bwgoal-form') {
+    const g = num(fd.get('goal'));
+    if (g && (g < 25 || g > 300)) return toast('Invalid goal', 'bad');
+    state.profile.bwGoal = g || null; save(); render(false); return toast(g ? `Goal set: ${fmtKg(g)}` : 'Goal removed', 'ok');
+  }
+  if (f.id === 'exgoal-form') {
+    const g = num(fd.get('goal')), id = f.dataset.ex;
+    if (g <= 0 || g > 1000) return toast('Invalid target', 'bad');
+    state.goals[id] = g; save(); render(false); return toast(`Target set: ${getEx(id).name} ${fmtKg(g)}`, 'ok');
   }
   if (f.id === 'custom-form') {
     const ex = { id: 'c_' + uid(), name: String(fd.get('name')).trim(), group: fd.get('group'), bw: !!fd.get('bw'), std: null, custom: true, region: 'upper' };
@@ -1021,12 +1358,13 @@ document.addEventListener('submit', ev => {
 
 document.addEventListener('change', ev => {
   if (draft && ev.target.matches('.set input[data-f="r"]') && num(ev.target.value) > 0) startRest();
+  if (ev.target.id === 'prog-ex') { state.progEx = ev.target.value; save(); return render(false); }
   if (ev.target.id !== 'import-file') return;
   const file = ev.target.files[0]; if (!file) return;
   file.text().then(txt => {
     const d = JSON.parse(txt);
     if (!Array.isArray(d.workouts)) throw new Error();
-    state = migrate({ ...defaultState(), profile: { ...defaultState().profile, ...d.profile }, workouts: d.workouts, custom: d.custom || [], tab: 'status' });
+    state = migrate({ ...defaultState(), profile: { ...defaultState().profile, ...d.profile }, workouts: d.workouts, custom: d.custom || [], goals: d.goals || {}, bwLog: d.bwLog || [], tab: 'status' });
     save(); render(); toast('Backup imported', 'ok');
   }).catch(() => toast('Invalid file', 'bad'));
 });
