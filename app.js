@@ -229,7 +229,7 @@ function migrate(st) { // dados antigos em português
   return st;
 }
 // chaves só de interface / sincronização: não vão para a nuvem
-const LOCAL_KEYS = ['tab', 'selMuscle', 'recFilter', 'range', 'metric', 'progEx', 'wView', 'planEdit', 'rankView', 'lbSort', 'updatedAt', 'syncedAt', 'cloudUser', 'pendingInvite'];
+const LOCAL_KEYS = ['tab', 'selMuscle', 'recFilter', 'range', 'metric', 'progEx', 'wView', 'planEdit', 'planEditDay', 'rankView', 'lbSort', 'updatedAt', 'syncedAt', 'cloudUser', 'pendingInvite'];
 function syncData(st = state) { const o = { ...st }; for (const k of LOCAL_KEYS) delete o[k]; return o; }
 let lastSyncJson = null;
 function saveLocal() { try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch { toast('Could not save on this device', 'bad'); } }
@@ -447,6 +447,7 @@ const IC = {
   search: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>',
   chev: '<svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>',
   swap: '<svg viewBox="0 0 24 24"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg>',
+  edit: '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m14 6 4 4"/></svg>',
 };
 const prBadge = (type, small = false) => type === 'w'
   ? `<span class="pr pr-w${small ? ' sm' : ''}" title="Weight record">▲ WEIGHT PR</span>`
@@ -1136,6 +1137,31 @@ function startPlanDay(di) {
   renderEditor();
 }
 
+// edição manual do plano
+let pickTarget = null; // {di, ei} quando o seletor de exercícios está a escolher para o plano
+function planPick(id) {
+  const { di, ei } = pickTarget; pickTarget = null;
+  const day = state.plan.days[di];
+  closeModal();
+  if (day.ex.some((x, i) => x.id === id && i !== ei)) return toast('That exercise is already in this day', 'bad');
+  if (ei == null) {
+    const g = GOALS[state.plan.goal].a;
+    day.ex.push({ id, slot: null, role: 'a', sets: g[0], reps: g[1] });
+  } else {
+    const old = day.ex[ei];
+    day.ex[ei] = { ...old, id, slot: old.slot && SLOTS[old.slot]?.includes(id) ? old.slot : null };
+  }
+  state.plan.customized = true; save(); render(false);
+  toast(`${getEx(id).name} ${ei == null ? 'added' : 'saved'} in ${day.name}`, 'ok');
+}
+function planEditOp(op, arg) {
+  const [di, ei, dir] = String(arg).split(':').map(Number);
+  const day = state.plan.days[di];
+  if (op === 'move') { const j = ei + dir; if (j < 0 || j >= day.ex.length) return; [day.ex[ei], day.ex[j]] = [day.ex[j], day.ex[ei]]; }
+  if (op === 'del') day.ex.splice(ei, 1);
+  state.plan.customized = true; save(); render(false);
+}
+
 function planBuilder() {
   const cfg = { split: 'ppl3', goal: 'hyp', len: 6, ...(state.planCfg || {}) };
   const gym = new Set(state.gym || []);
@@ -1183,12 +1209,26 @@ function planDisplay() {
   <section class="panel plan-day ${d.weekday === t ? 'is-today' : ''}">
     <header>
       <div><div class="w-date">${WEEKDAYS[d.weekday]}${d.weekday === t ? ' · TODAY' : ''}</div><h4>${esc(d.name)}</h4><small>${DAY_T[d.type].focus}</small></div>
-      <button class="btn sm primary" data-startday="${di}">START</button>
+      <div class="day-btns">
+        ${state.planEditDay === di
+          ? `<button class="btn sm primary" data-pdone="${di}">DONE</button>`
+          : `<button class="btn sm ghost" data-pedit="${di}">${IC.edit}<span>EDIT</span></button><button class="btn sm primary" data-startday="${di}">START</button>`}
+      </div>
     </header>
-    ${d.ex.length < 3 ? '<p class="hint">⚠ Few exercises available for this day with your equipment.</p>' : ''}
+    ${state.planEditDay === di ? `
+    <p class="hint">Tap an exercise name to replace it with any exercise you want. Change sets × reps, reorder or remove.</p>
+    <ol class="plan-ex editing">${d.ex.map((e, ei) => `
+      <li class="r-${e.role}">
+        <div class="mv"><button class="icon-btn sm" data-pmove="${di}:${ei}:-1" aria-label="Move up" ${ei === 0 ? 'disabled' : ''}>${IC.up}</button><button class="icon-btn sm down" data-pmove="${di}:${ei}:1" aria-label="Move down" ${ei === d.ex.length - 1 ? 'disabled' : ''}>${IC.up}</button></div>
+        <button class="pick-name" data-preplace="${di}:${ei}">${esc(getEx(e.id)?.name || 'Unknown exercise')}<i>${IC.edit}</i></button>
+        <div class="sr-edit"><input data-pset="${di}:${ei}" value="${e.sets}" inputmode="numeric" aria-label="Sets"><span>×</span><input data-preps="${di}:${ei}" value="${esc(e.reps)}" aria-label="Reps"></div>
+        <button class="icon-btn sm" data-pdel="${di}:${ei}" aria-label="Remove exercise">${IC.trash}</button>
+      </li>`).join('')}</ol>
+    <button class="btn wide dashed" data-padd="${di}">${IC.plus}<span>ADD EXERCISE</span></button>`
+    : `${d.ex.length < 3 ? '<p class="hint">⚠ Few exercises in this day — tap EDIT to add your own.</p>' : ''}
     <ol class="plan-ex">${d.ex.map((e, ei) => `
-      <li class="r-${e.role}"><span class="n">${esc(getEx(e.id)?.name)}</span><span class="sr">${e.sets} × ${e.reps}</span>
-        <button class="icon-btn sm" data-swap="${di}:${ei}" aria-label="Swap exercise" title="Swap for another exercise">${IC.swap}</button></li>`).join('')}</ol>
+      <li class="r-${e.role}"><span class="n">${esc(getEx(e.id)?.name || 'Unknown exercise')}</span><span class="sr">${e.sets} × ${esc(e.reps)}</span>
+        ${e.slot ? `<button class="icon-btn sm" data-swap="${di}:${ei}" aria-label="Swap exercise" title="Swap for a similar exercise">${IC.swap}</button>` : '<span></span>'}</li>`).join('')}</ol>`}
   </section>`).join('')}
   <div class="btn-col">
     <button class="btn" data-act="editplan">EDIT GYM & SPLIT</button>
@@ -1494,7 +1534,7 @@ function demoData() {
 
 /* ---------- eventos ---------- */
 document.addEventListener('click', async ev => {
-  const el = ev.target.closest('[data-tab],[data-act],[data-go],[data-edit],[data-addset],[data-delset],[data-delex],[data-pick],[data-copy],[data-filter],[data-delcustom],[data-muscle],[data-rest],[data-range],[data-metric],[data-progex],[data-wview],[data-eq],[data-preset],[data-split],[data-goal],[data-len],[data-swap],[data-startday],[data-rankview]');
+  const el = ev.target.closest('[data-tab],[data-act],[data-go],[data-edit],[data-addset],[data-delset],[data-delex],[data-pick],[data-copy],[data-filter],[data-delcustom],[data-muscle],[data-rest],[data-range],[data-metric],[data-progex],[data-wview],[data-eq],[data-preset],[data-split],[data-goal],[data-len],[data-swap],[data-startday],[data-rankview],[data-pedit],[data-pdone],[data-pmove],[data-pdel],[data-padd],[data-preplace]');
   if (!el) {
     if (ev.target.id === 'modal' && !$(".sys-window.k-warn, .sys-window.no-dismiss")) closeModal();
     return;
@@ -1522,7 +1562,13 @@ document.addEventListener('click', async ev => {
   if (d.progex) { state.progEx = d.progex; save(); return go('progress'); }
   if (d.edit) return openEditor(d.edit);
   if (d.filter) { state.recFilter = d.filter; save(); return render(); }
-  if (d.pick) return addExercise(d.pick);
+  if (d.pick) return pickTarget ? planPick(d.pick) : addExercise(d.pick);
+  if (d.pedit !== undefined) { state.planEditDay = +d.pedit; save(); return render(false); }
+  if (d.pdone !== undefined) { state.planEditDay = null; save(); render(false); return toast('Plan saved', 'ok'); }
+  if (d.pmove) return planEditOp('move', d.pmove);
+  if (d.pdel) return planEditOp('del', d.pdel);
+  if (d.padd !== undefined) { pickTarget = { di: +d.padd, ei: null }; return openPicker(); }
+  if (d.preplace) { const [di, ei] = d.preplace.split(':').map(Number); pickTarget = { di, ei }; return openPicker(); }
   if (d.copy) {
     const src = state.workouts.find(w => w.id === d.copy);
     draft.name = src.name;
@@ -1545,6 +1591,7 @@ document.addEventListener('click', async ev => {
     if (state.workouts.some(w => w.exercises.some(e => e.exId === d.delcustom))) return toast('This exercise is used in workouts', 'bad');
     state.custom = state.custom.filter(c => c.id !== d.delcustom);
     if (state.goals) delete state.goals[d.delcustom]; // o alvo desse exercício deixa de fazer sentido
+    state.plan?.days.forEach(day => { day.ex = day.ex.filter(e => e.id !== d.delcustom); }); // e sai do plano
     if (state.progEx === d.delcustom) state.progEx = null;
     save(); return render();
   }
@@ -1552,12 +1599,13 @@ document.addEventListener('click', async ev => {
     case 'new': return openEditor();
     case 'close': return closeEditor();
     case 'save': return saveDraft();
-    case 'pick': return openPicker();
+    case 'pick': pickTarget = null; return openPicker();
     case 'mclose': return closeModal();
     case 'genplan': {
+      if (state.plan?.customized && !(await sysConfirm('Generating a new plan replaces the exercises you chose. Continue?', 'REPLACE'))) return;
       if (!(state.gym || []).length) return toast('Select your gym equipment first', 'bad');
       const cfg = { split: 'ppl3', goal: 'hyp', len: 6, ...(state.planCfg || {}) };
-      state.plan = generatePlan(cfg); state.planEdit = false; save(); render(false); window.scrollTo({ top: 0 });
+      state.plan = generatePlan(cfg); state.planEdit = false; state.planEditDay = null; save(); render(false); window.scrollTo({ top: 0 });
       const sp = SPLITS[cfg.split];
       queueAlerts([{ kind: 'quest', html: `<p class="sys-big">NEW QUEST UNLOCKED</p><p>Training plan: <b>${sp.name}</b></p><p class="muted">${state.plan.days.map(d => `${WEEKDAYS[d.weekday]} · ${esc(d.name)}`).join('<br>')}</p><p class="reward">Complete your sessions to earn <b>EXP</b></p>` }]);
       return;
@@ -1638,11 +1686,19 @@ document.addEventListener('submit', ev => {
   if (f.id === 'custom-form') {
     const ex = { id: 'c_' + uid(), name: String(fd.get('name')).trim(), group: fd.get('group'), bw: !!fd.get('bw'), std: null, custom: true, region: 'upper' };
     if (!ex.name) return;
-    state.custom.push(ex); save(); addExercise(ex.id);
+    state.custom.push(ex); save(); pickTarget ? planPick(ex.id) : addExercise(ex.id);
   }
 });
 
 document.addEventListener('change', ev => {
+  const pe = ev.target.dataset?.pset || ev.target.dataset?.preps;
+  if (pe && state.plan) {
+    const [di, ei] = pe.split(':').map(Number), e = state.plan.days[di]?.ex[ei];
+    if (!e) return;
+    if (ev.target.dataset.pset) { const n = Math.round(num(ev.target.value)); if (n >= 1 && n <= 20) e.sets = n; ev.target.value = e.sets; }
+    else { const r = ev.target.value.trim().replace(/-/g, '–').slice(0, 12); if (r) e.reps = r; ev.target.value = e.reps; }
+    state.plan.customized = true; return save();
+  }
   if (draft && ev.target.matches('.set input[data-f="r"]') && num(ev.target.value) > 0) startRest();
   if (ev.target.id === 'prog-ex') { state.progEx = ev.target.value; save(); return render(false); }
   if (ev.target.id !== 'import-file') return;
