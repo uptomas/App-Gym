@@ -10,7 +10,7 @@ A gamified gym tracker: log your workouts, break personal records and climb the 
   - `◆ VOLUME PR`: your best set (weight × reps) beats your best single-set volume.
   - PRs light up live while you type and appear in the history, the feed and a System notification.
 - **League ranking**: Bronze → Silver → Gold → Platinum → Diamond → Champion → Grand Champion (each with I, II, III) → Legend.
-  - Per exercise: estimated 1RM (Epley) ÷ bodyweight on that day, compared against strength standards (beginner → elite) and converted to MMR.
+  - Per exercise: **70% estimated 1RM + 30% best set volume**, both relative to bodyweight on that day, compared against strength standards (beginner → elite) and converted to MMR. Reps above 12 don't count, and training more often or earning EXP never raises your rank — only lifting heavier or doing a bigger set does.
   - **Muscle map** (front and back): each muscle (chest, back, shoulders, biceps, triceps, quads, hamstrings, glutes, calves, abs) takes the rank of your best exercise for it and is painted in its league colour.
   - Overall rank = average of the 8 main muscles. Untrained muscles count as 0, so a balanced physique climbs faster. You finish placements with 4 ranked muscles.
   - Shows the 1RM you need for the next division.

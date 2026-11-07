@@ -19,7 +19,14 @@ const fmtDate = iso => dateObj(iso).toLocaleDateString('en-GB', { weekday: 'shor
 const fmtDateShort = iso => dateObj(iso).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' });
 const fmtMonth = iso => dateObj(iso).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
 const daysBetween = (a, b) => Math.round((dateObj(b) - dateObj(a)) / 86400000);
-const e1rm = (load, reps) => reps <= 1 ? load : load * (1 + reps / 30); // fórmula de Epley
+// fórmula de Epley; acima de 12 reps a estimativa deixa de subir (séries muito longas não "inflacionam" o 1RM)
+const E1RM_MAX_REPS = 12;
+const e1rm = (load, reps) => reps <= 1 ? load : load * (1 + Math.min(reps, E1RM_MAX_REPS) / 30);
+// rank de cada exercício: 70% força (1RM/peso corporal) + 30% volume (melhor série peso×reps / peso corporal)
+const W_STR = 0.7, W_VOL = 0.3;
+const VOL_FACTOR = 7.5; // referência: 10 reps a 75% do 1RM = 7,5 × 1RM
+const volStd = std => std.map(x => x * VOL_FACTOR);
+const blendMMR = (str, vol) => W_STR * str + W_VOL * vol;
 
 /* ---------- ranks (estilo liga competitiva) ---------- */
 const TIERS = [
@@ -270,7 +277,7 @@ function compute(st = state, excludeId = null) {
     let wVol = 0, wPr = 0;
     w.exercises.forEach((e, ei) => {
       const def = getEx(e.exId); if (!def) return;
-      let topW = null, topV = null, topE = 0, sv = 0;
+      let topW = null, topV = null, topE = 0, sv = 0, rankVol = 0;
       e.sets.forEach((set, si) => {
         const wt = num(set.w), r = Math.round(num(set.r)); if (r <= 0) return;
         const load = def.bw ? bw + wt : wt;
@@ -279,9 +286,10 @@ function compute(st = state, excludeId = null) {
         if (!topW || wt > topW.w || (wt === topW.w && r > topW.r)) topW = { w: wt, r, si };
         if (!topV || vol > topV.v) topV = { v: vol, w: wt, r, si };
         topE = Math.max(topE, e1rm(load, r));
+        rankVol = Math.max(rankVol, load * Math.min(r, E1RM_MAX_REPS)); // volume para o rank: reps acima de 12 não contam
       });
       if (!topW) return;
-      const s = ex[e.exId] ||= { id: e.exId, bestW: null, bestVol: null, bestE1: 0, bestMMR: null, bestRatio: 0, sessions: 0, hist: [], last: null, prs: 0 };
+      const s = ex[e.exId] ||= { id: e.exId, bestW: null, bestVol: null, bestE1: 0, bestMMR: null, bestRatio: 0, strMMR: null, volMMR: null, bestVolRatio: 0, sessions: 0, hist: [], last: null, prs: 0 };
       if (s.sessions > 0) {
         const key = si => `${w.id}:${ei}:${si}`;
         if (topW.w > s.bestW.w) {
@@ -299,7 +307,10 @@ function compute(st = state, excludeId = null) {
       const std = stdFor(def, st.profile.sex);
       if (std) {
         const ratio = topE / bw, m = ratioToMMR(ratio, std);
-        if (s.bestMMR === null || m > s.bestMMR) { s.bestMMR = m; s.bestRatio = ratio; }
+        if (s.strMMR === null || m > s.strMMR) { s.strMMR = m; s.bestRatio = ratio; }
+        const vRatio = rankVol / bw, vm = ratioToMMR(vRatio, volStd(std));
+        if (s.volMMR === null || vm > s.volMMR) { s.volMMR = vm; s.bestVolRatio = vRatio; }
+        s.bestMMR = blendMMR(s.strMMR, s.volMMR);
       }
       s.sessions++;
       s.hist.push({ date: w.date, e1: topE, w: topW.w, v: topV.v, sv, wid: w.id });
@@ -594,7 +605,7 @@ const VIEWS = {
       const ri = rankIdx(s.bestMMR), nx = RANKS[ri + 1];
       let target = '';
       if (nx) {
-        const ratio = mmrToRatio(nx.min + 0.5, std);
+        const ratio = mmrToRatio(Math.max(0, (nx.min + 0.5 - W_VOL * s.volMMR) / W_STR), std);
         let need = ratio * bw; if (def.bw) need -= bw;
         target = `<div class="target">Next: <b style="color:${TIERS[nx.tier].glow}">${nx.name}</b> → 1RM ${def.bw ? '+' : ''}${fmtKg(Math.ceil(need * 2) / 2)}${def.perHand ? ' /dumbbell' : ''}</div>`;
       }
@@ -603,7 +614,8 @@ const VIEWS = {
         ${emblem(ri, 46)}
         <div class="rx">
           <div class="rx-top"><b>${esc(def.name)}</b>${bestFor.map(m => `<span class="tag">${m.name.toUpperCase()}</span>`).join('')}</div>
-          <div class="rx-sub"><span style="color:${TIERS[RANKS[ri].tier].glow}">${RANKS[ri].name}</span> · ${fmt(s.bestRatio, 2)}× BW · est. 1RM ${fmtKg(def.bw ? s.bestE1 - bw : s.bestE1)}${def.bw ? ' extra' : ''}</div>
+          <div class="rx-sub"><span style="color:${TIERS[RANKS[ri].tier].glow}">${RANKS[ri].name}</span> · 1RM ${fmtKg(def.bw ? s.bestE1 - bw : s.bestE1)}${def.bw ? ' extra' : ''} (${fmt(s.bestRatio, 2)}× BW)</div>
+          <div class="rx-split"><span title="Strength score (70%)">💪 1RM <b>${fmt(s.strMMR, 0)}</b></span><span title="Volume score (30%)">◆ Vol <b>${fmt(s.volMMR, 0)}</b> <small>best set ${fmtKg(s.bestVol.v, 0)}</small></span></div>
           ${target}
         </div>
         <div class="mmr">${fmt(s.bestMMR, 0)}</div>
@@ -641,7 +653,9 @@ const VIEWS = {
       ${exRows ? `<ul class="rank-list">${exRows}</ul>` : '<p class="empty">No ranked exercises yet.</p>'}
       <details class="how">
         <summary>How does the ranking work?</summary>
-        <p>For each exercise the System calculates your <b>estimated 1RM</b> (Epley formula) and divides it by your <b>bodyweight</b> on that day. That ratio is compared with strength standards (beginner → elite) and converted to MMR.</p>
+        <p>Your rank is about <b>how strong you are</b>, not how much you train. Each exercise gets a score from two things, both relative to your <b>bodyweight</b> on that day:</p>
+        <p>• <b>70% — estimated 1RM</b> (Epley formula).<br>• <b>30% — volume</b>: your best single set (weight × reps).</p><p>Reps above 12 in a set don't count for either, so very long sets with light weight can't inflate your rank.</p>
+        <p>Training more often, doing more sets or earning EXP does <b>not</b> raise your rank — only lifting heavier or doing a bigger set does. EXP and levels reward consistency separately.</p>
         <p>Each <b>muscle</b> takes the rank of your best exercise that trains it (e.g. Chest uses the best of your bench presses, pec deck and dips).</p><p>Your <b>overall rank</b> is the average of the 8 main muscles (chest, back, shoulders, biceps, triceps, quads, hamstrings and glutes). Untrained muscles count as 0, so a balanced physique climbs faster. Calves and abs show on the map but don't count. You need 4 ranked muscles to finish placements.</p><p>For bodyweight exercises (pull-ups, dips) your bodyweight + added load counts.</p>
         <p>Beginner ≈ Silver · Novice ≈ Gold · Intermediate ≈ Platinum · Advanced ≈ Champion · Elite ≈ Grand Champion.</p>
       </details>

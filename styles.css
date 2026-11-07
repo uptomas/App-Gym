@@ -609,3 +609,6 @@ input[type="date"] { color-scheme: dark; }
 .sr-edit span { color: var(--muted); font-size: 13px; }
 .plan-day .btn.dashed { margin-top: 10px; }
 @media (max-width: 380px) { .sr-edit input[data-preps] { width: 48px; } }
+.rx-split { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+.rx-split b { font-family: var(--hd); font-size: 11.5px; color: var(--cyan2); }
+.rx-split small { font-size: 11.5px; }
