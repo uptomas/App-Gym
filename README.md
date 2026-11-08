@@ -19,6 +19,7 @@ A gamified gym tracker: log your workouts, break personal records and climb the 
 - **Training plan generator** (Workouts → Training plan):
   - Tick the equipment and machines your gym has (presets: full gym, barbell gym, home dumbbells, bodyweight).
   - Pick a weekly split: Full Body (2×/3×), Upper/Lower, Push/Pull/Legs (3×/6×), PPL + Upper/Lower, Arnold split (3×/6×), Bro split.
+  - Choose the weekdays you train (e.g. Mon/Tue/Thu/Fri/Sat); later you can move any session to another day (taking a busy day swaps the two).
   - Pick a goal (hypertrophy, strength, endurance) and session length; the plan uses only exercises you can do with your equipment, with sets × reps and a weekly schedule.
   - Customise any day with **EDIT**: replace exercises with any exercise you want (library or custom), add, remove, reorder and change sets × reps. Your choices are saved in the plan.
   - Swap any exercise for an alternative, see today's session on the Status screen and start it with one tap (pre-filled with your last weights).

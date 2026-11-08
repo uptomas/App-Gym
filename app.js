@@ -1117,8 +1117,13 @@ function buildDay(type, variant, gym, cfg) {
   }
   return ex;
 }
+// dias escolhidos pelo utilizador (se forem exatamente os necessários), senão os dias por defeito
+function planSchedule(cfg) {
+  const n = SPLITS[cfg.split].days.length;
+  return cfg.days?.length === n ? [...cfg.days].sort((a, b) => a - b) : SCHEDULE[n];
+}
 function generatePlan(cfg) {
-  const gym = new Set(state.gym || []), sp = SPLITS[cfg.split], sched = SCHEDULE[sp.days.length];
+  const gym = new Set(state.gym || []), sp = SPLITS[cfg.split], sched = planSchedule(cfg);
   const days = sp.days.map(([type, v], i) => {
     const multi = sp.days.filter(d => d[0] === type).length > 1;
     return { name: DAY_T[type].name + (multi ? ' ' + 'ABC'[v] : ''), type, weekday: sched[i], ex: buildDay(type, v, gym, cfg) };
@@ -1200,7 +1205,25 @@ function planBuilder() {
   </section>
 
   <section class="panel">
-    <div class="panel-title"><span>3 · GOAL & LENGTH</span></div>
+    <div class="panel-title"><span>3 · TRAINING DAYS</span></div>
+    ${(() => {
+      const n = SPLITS[cfg.split].days.length, picked = cfg.days || [], ok = picked.length === n;
+      const sched = planSchedule(cfg);
+      return `<p class="hint">Pick the <b>${n} days</b> you want to train${picked.length ? ` — <b class="${ok ? 'cyan' : 'gold'}">${picked.length}/${n} selected</b>` : ' (or leave it and we use a default schedule)'}.</p>
+      <div class="wd-pick">${WEEKDAYS.map((w, i) => `<button class="wd-btn ${picked.includes(i) ? 'on' : ''}" data-wday="${i}">${w}</button>`).join('')}</div>
+      ${picked.length && !ok ? `<p class="hint gold">Select exactly ${n} days for ${SPLITS[cfg.split].name}.</p>` : ''}
+      <div class="sched-preview">${WEEKDAYS.map((w, i) => {
+        const sp = SPLITS[cfg.split], k = sched.indexOf(i);
+        let label = 'Rest', train = false;
+        if (picked.length && !ok) { if (picked.includes(i)) { label = '?'; train = true; } }
+        else if (k >= 0) { const [tp, v] = sp.days[k]; label = DAY_T[tp].name + (sp.days.filter(x => x[0] === tp).length > 1 ? ' ' + 'ABC'[v] : ''); train = true; }
+        return `<div class="wd ${train ? 'train' : ''}"><span>${w}</span><b>${label}</b></div>`;
+      }).join('')}</div>`;
+    })()}
+  </section>
+
+  <section class="panel">
+    <div class="panel-title"><span>4 · GOAL & LENGTH</span></div>
     <div class="goal-pick">${Object.entries(GOALS).map(([k, g]) => `<button class="split ${cfg.goal === k ? 'on' : ''}" data-goal="${k}"><b>${g.name}</b><small>${g.sub} · ${g.m[0]}×${g.m[1]}</small></button>`).join('')}</div>
     <div class="field-lbl" style="margin-top:12px">Exercises per session</div>
     <div class="chips seg">${Object.entries(LENS).map(([n, t]) => `<button class="chip ${+cfg.len === +n ? 'on' : ''}" data-len="${n}">${n} · ${t}</button>`).join('')}</div>
@@ -1222,7 +1245,7 @@ function planDisplay() {
   ${p.days.map((d, di) => `
   <section class="panel plan-day ${d.weekday === t ? 'is-today' : ''}">
     <header>
-      <div><div class="w-date">${WEEKDAYS[d.weekday]}${d.weekday === t ? ' · TODAY' : ''}</div><h4>${esc(d.name)}</h4><small>${DAY_T[d.type].focus}</small></div>
+      <div><label class="wd-select"><select data-pwd="${di}" aria-label="Training day for ${esc(d.name)}">${WEEKDAYS.map((w, i) => `<option value="${i}" ${i === d.weekday ? 'selected' : ''}>${w}</option>`).join('')}</select>${d.weekday === t ? '<span class="today-tag">TODAY</span>' : ''}</label><h4>${esc(d.name)}</h4><small>${DAY_T[d.type].focus}</small></div>
       <div class="day-btns">
         ${state.planEditDay === di
           ? `<button class="btn sm primary" data-pdone="${di}">DONE</button>`
@@ -1548,7 +1571,7 @@ function demoData() {
 
 /* ---------- eventos ---------- */
 document.addEventListener('click', async ev => {
-  const el = ev.target.closest('[data-tab],[data-act],[data-go],[data-edit],[data-addset],[data-delset],[data-delex],[data-pick],[data-copy],[data-filter],[data-delcustom],[data-muscle],[data-rest],[data-range],[data-metric],[data-progex],[data-wview],[data-eq],[data-preset],[data-split],[data-goal],[data-len],[data-swap],[data-startday],[data-rankview],[data-pedit],[data-pdone],[data-pmove],[data-pdel],[data-padd],[data-preplace]');
+  const el = ev.target.closest('[data-tab],[data-act],[data-go],[data-edit],[data-addset],[data-delset],[data-delex],[data-pick],[data-copy],[data-filter],[data-delcustom],[data-muscle],[data-rest],[data-range],[data-metric],[data-progex],[data-wview],[data-eq],[data-preset],[data-split],[data-goal],[data-len],[data-swap],[data-startday],[data-rankview],[data-pedit],[data-pdone],[data-pmove],[data-pdel],[data-padd],[data-preplace],[data-wday]');
   if (!el) {
     if (ev.target.id === 'modal' && !$(".sys-window.k-warn, .sys-window.no-dismiss")) closeModal();
     return;
@@ -1565,6 +1588,13 @@ document.addEventListener('click', async ev => {
   if (d.wview) { state.wView = d.wview; save(); return state.tab === 'workouts' ? render(false) : go('workouts'); }
   if (d.eq) { const g = new Set(state.gym || []); g.has(d.eq) ? g.delete(d.eq) : g.add(d.eq); state.gym = [...g]; save(); return render(false); }
   if (d.preset) { state.gym = d.preset === 'none' ? [] : [...EQUIP_PRESETS[d.preset].eq]; save(); return render(false); }
+  if (d.wday !== undefined) {
+    const cfg = { split: 'ppl3', goal: 'hyp', len: 6, ...(state.planCfg || {}) }, i = +d.wday, set = new Set(cfg.days || []);
+    if (set.has(i)) set.delete(i);
+    else if (set.size >= SPLITS[cfg.split].days.length) return toast(`${SPLITS[cfg.split].name} needs ${SPLITS[cfg.split].days.length} days — unselect one first`, 'bad');
+    else set.add(i);
+    state.planCfg = { ...cfg, days: [...set].sort((a, b) => a - b) }; save(); return render(false);
+  }
   if (d.split || d.goal || d.len) {
     state.planCfg = { split: 'ppl3', goal: 'hyp', len: 6, ...(state.planCfg || {}), ...(d.split ? { split: d.split } : {}), ...(d.goal ? { goal: d.goal } : {}), ...(d.len ? { len: +d.len } : {}) };
     save(); return render(false);
@@ -1616,15 +1646,17 @@ document.addEventListener('click', async ev => {
     case 'pick': pickTarget = null; return openPicker();
     case 'mclose': return closeModal();
     case 'genplan': {
-      if (state.plan?.customized && !(await sysConfirm('Generating a new plan replaces the exercises you chose. Continue?', 'REPLACE'))) return;
       if (!(state.gym || []).length) return toast('Select your gym equipment first', 'bad');
       const cfg = { split: 'ppl3', goal: 'hyp', len: 6, ...(state.planCfg || {}) };
+      const need = SPLITS[cfg.split].days.length;
+      if (cfg.days?.length && cfg.days.length !== need) return toast(`Pick exactly ${need} training days (you picked ${cfg.days.length})`, 'bad');
+      if (state.plan?.customized && !(await sysConfirm('Generating a new plan replaces the exercises you chose. Continue?', 'REPLACE'))) return;
       state.plan = generatePlan(cfg); state.planEdit = false; state.planEditDay = null; save(); render(false); window.scrollTo({ top: 0 });
       const sp = SPLITS[cfg.split];
       queueAlerts([{ kind: 'quest', html: `<p class="sys-big">NEW QUEST UNLOCKED</p><p>Training plan: <b>${sp.name}</b></p><p class="muted">${state.plan.days.map(d => `${WEEKDAYS[d.weekday]} · ${esc(d.name)}`).join('<br>')}</p><p class="reward">Complete your sessions to earn <b>EXP</b></p>` }]);
       return;
     }
-    case 'editplan': state.planEdit = true; save(); render(false); return window.scrollTo({ top: 0 });
+    case 'editplan': state.planEdit = true; if (state.plan) state.planCfg = { ...(state.planCfg || {}), split: state.plan.split, days: state.plan.days.map(x => x.weekday).sort((a, b) => a - b) }; save(); render(false); return window.scrollTo({ top: 0 });
     case 'cancelplan': state.planEdit = false; save(); return render(false);
     case 'delplan':
       if (await sysConfirm('Delete your training plan? Your workout history is kept.', 'DELETE')) { state.plan = null; state.planEdit = false; save(); render(false); }
@@ -1705,6 +1737,16 @@ document.addEventListener('submit', ev => {
 });
 
 document.addEventListener('change', ev => {
+  if (ev.target.dataset?.pwd !== undefined && state.plan) {
+    const di = +ev.target.dataset.pwd, wd = +ev.target.value, days = state.plan.days, day = days[di];
+    const other = days.find((x, i) => i !== di && x.weekday === wd);
+    if (other) other.weekday = day.weekday; // dia ocupado: os dois treinos trocam
+    day.weekday = wd;
+    days.sort((a, b) => a.weekday - b.weekday);
+    state.planEditDay = null;
+    save(); render(false);
+    return toast(other ? `${day.name} ↔ ${other.name} swapped days` : `${day.name} moved to ${WEEKDAYS[wd]}`, 'ok');
+  }
   const pe = ev.target.dataset?.pset || ev.target.dataset?.preps;
   if (pe && state.plan) {
     const [di, ei] = pe.split(':').map(Number), e = state.plan.days[di]?.ex[ei];
