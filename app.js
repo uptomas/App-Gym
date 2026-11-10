@@ -458,6 +458,7 @@ const IC = {
   search: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>',
   chev: '<svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>',
   swap: '<svg viewBox="0 0 24 24"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg>',
+  card: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="11" r="2.2"/><path d="M5.5 16c.6-1.6 1.7-2.3 3-2.3s2.4.7 3 2.3M14 10h4M14 13h4"/></svg>',
   edit: '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m14 6 4 4"/></svg>',
 };
 const prBadge = (type, small = false) => type === 'w'
@@ -799,6 +800,7 @@ const VIEWS = {
     const filter = state.recFilter || 'All';
     const groups = ['All', ...GROUPS.filter(g => list.some(s => getEx(s.id)?.group === g))];
     return `
+      <button class="btn primary wide" data-act="card">${IC.card}<span>ATHLETE CARD · EXPORT</span></button>
       <div class="chips">${groups.map(g => `<button class="chip ${g === filter ? 'on' : ''}" data-filter="${g}">${g}</button>`).join('')}</div>
       ${list.filter(s => filter === 'All' || getEx(s.id)?.group === filter).map(s => {
         const def = getEx(s.id); if (!def) return '';
@@ -833,6 +835,10 @@ const VIEWS = {
       <form id="profile-form" class="form">
         <label>Name<input name="name" value="${esc(p.name)}" maxlength="24" autocomplete="off"></label>
         <label>Bodyweight (kg)<input name="bw" value="${esc(p.bw)}" inputmode="decimal"></label>
+        <div class="form-row2">
+          <label>Height (cm)<input name="height" value="${esc(p.height || '')}" inputmode="numeric" placeholder="e.g. 178"></label>
+          <label>Date of birth<input name="dob" type="date" value="${esc(p.dob || '')}" max="${todayISO()}"></label>
+        </div>
         <label>Rest between sets (seconds)<input name="rest" value="${esc(p.rest || 90)}" inputmode="numeric"></label>
         <label>Strength standards
           <select name="sex"><option value="m" ${p.sex !== 'f' ? 'selected' : ''}>Male</option><option value="f" ${p.sex === 'f' ? 'selected' : ''}>Female</option></select>
@@ -840,6 +846,7 @@ const VIEWS = {
         <p class="hint">Your bodyweight is saved with every new workout — update it whenever you weigh yourself. The ranking uses the weight you had on the day of each workout.</p>
         <button class="btn primary wide" type="submit">SAVE</button>
       </form>
+      <button class="btn wide" data-act="card" style="margin-top:10px">${IC.card}<span>ATHLETE CARD · EXPORT</span></button>
     </section>
 
     <section class="panel">
@@ -1273,6 +1280,141 @@ function planDisplay() {
   </div>`;
 }
 
+
+/* ---------- ficha de atleta (exportar PDF / CSV) ---------- */
+function ageFrom(dob) {
+  if (!dob) return null;
+  const b = dateObj(dob), n = new Date();
+  let a = n.getFullYear() - b.getFullYear();
+  if (n.getMonth() < b.getMonth() || (n.getMonth() === b.getMonth() && n.getDate() < b.getDate())) a--;
+  return a >= 0 && a < 130 ? a : null;
+}
+function athleteRows() {
+  const order = g => { const i = GROUPS.indexOf(g); return i < 0 ? 99 : i; };
+  return Object.values(C.ex).map(s => ({ s, def: getEx(s.id) })).filter(r => r.def)
+    .sort((a, b) => order(a.def.group) - order(b.def.group) || (b.s.bestMMR ?? -1) - (a.s.bestMMR ?? -1) || a.def.name.localeCompare(b.def.name));
+}
+function athleteInfo() {
+  const p = state.profile, bw = num(p.bw), h = num(p.height);
+  const first = state.workouts.map(w => w.date).sort()[0];
+  const big = { bench: C.ex.supino, squat: C.ex.agachamento, deadlift: C.ex.peso_morto };
+  const total = ['bench', 'squat', 'deadlift'].reduce((a, k) => a + (big[k] ? big[k].bestE1 : 0), 0);
+  return {
+    name: p.name, username: window.Social?.S?.profile?.username || null, age: ageFrom(p.dob), height: h || null, bw,
+    bmi: h && bw ? bw / Math.pow(h / 100, 2) : null, sex: p.sex === 'f' ? 'Female' : 'Male',
+    rank: C.ranked.length ? RANKS[C.rank].name : 'Unranked', mmr: C.mmr, level: C.level.lvl, title: titleFor(C.level.lvl),
+    workouts: C.count, volume: C.totalVol, prs: C.prList.length, since: first || null, streak: C.streak, big, total,
+  };
+}
+function athleteCardHtml() {
+  const a = athleteInfo(), rows = athleteRows();
+  const lbl = (def, w) => def.bw ? (w ? `BW+${fmt(w)}` : 'BW') : fmt(w);
+  let group = '';
+  const body = rows.map(({ s, def }) => {
+    const ri = s.bestMMR !== null ? rankIdx(s.bestMMR) : null;
+    const head = def.group !== group ? `<tr class="ac-g"><td colspan="6">${esc(group = def.group)}</td></tr>` : '';
+    return `${head}<tr>
+      <td class="ac-ex">${esc(def.name)}<small>${s.sessions} session${s.sessions === 1 ? '' : 's'} · ${s.prs} PR</small></td>
+      <td><b>${lbl(def, s.bestW.w)}</b> kg × ${s.bestW.r}<small>${fmtDateShort(s.bestW.date)}</small></td>
+      <td><b>${fmt(s.bestVol.v, 0)}</b> kg<small>${lbl(def, s.bestVol.w)} × ${s.bestVol.r}</small></td>
+      <td><b>${fmt(s.bestE1, 1)}</b> kg</td>
+      <td>${s.bestMMR !== null ? fmt(s.bestRatio, 2) + '×' : '—'}</td>
+      <td>${ri !== null ? `<span class="ac-rk">${emblem(ri, 20)}<span>${RANKS[ri].name}</span></span>` : '<span class="muted">—</span>'}</td>
+    </tr>`;
+  }).join('');
+  const cell = (k, v, hint) => `<div><span>${k}</span><b>${v ?? '—'}</b>${hint ? `<small>${hint}</small>` : ''}</div>`;
+  const bigCell = (k, s) => `<div><span>${k}</span><b>${s ? fmt(s.bestE1, 0) + ' kg' : '—'}</b><small>${s ? `${fmt(s.bestW.w)} × ${s.bestW.r}` : 'not logged'}</small></div>`;
+  const missing = !a.height || a.age === null;
+  return `
+  <article class="ac" id="athlete-card">
+    <div class="ac-top">
+      ${emblem(C.ranked.length ? C.rank : null, 92)}
+      <div class="ac-id">
+        <div class="ac-label">ATHLETE CARD · IRON SYSTEM</div>
+        <h2>${esc(a.name)}</h2>
+        ${a.username ? `<div class="ac-user">@${esc(a.username)}</div>` : ''}
+        <div class="ac-rank">${a.rank} · ${fmt(a.mmr, 0)} MMR · LV ${a.level} <i>${a.title}</i></div>
+      </div>
+    </div>
+    <div class="ac-grid">
+      ${cell('AGE', a.age !== null ? a.age : null)}
+      ${cell('HEIGHT', a.height ? fmt(a.height, 0) + ' cm' : null)}
+      ${cell('BODYWEIGHT', a.bw ? fmt(a.bw) + ' kg' : null)}
+      ${cell('BMI', a.bmi ? fmt(a.bmi, 1) : null)}
+      ${cell('WORKOUTS', a.workouts)}
+      ${cell('TOTAL VOLUME', fmt(a.volume / 1000, 1) + ' t')}
+      ${cell('PERSONAL RECORDS', a.prs)}
+      ${cell('TRAINING SINCE', a.since ? dateObj(a.since).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : null)}
+    </div>
+    ${missing ? '<p class="hint no-print">Add your height and date of birth in Profile to complete the card.</p>' : ''}
+    <h3>BIG 3 <small>estimated 1RM</small></h3>
+    <div class="ac-grid big3">
+      ${bigCell('BENCH', a.big.bench)}${bigCell('SQUAT', a.big.squat)}${bigCell('DEADLIFT', a.big.deadlift)}
+      <div class="tot"><span>TOTAL</span><b>${a.total ? fmt(a.total, 0) + ' kg' : '—'}</b><small>${a.total && a.bw ? fmt(a.total / a.bw, 2) + '× BW' : ''}</small></div>
+    </div>
+    <h3>MUSCLE RANKS</h3>
+    <div class="ac-muscles">
+      ${bodyMap(C.muscles, null)}
+      <ul>${MUSCLES.map(m => { const mm = C.muscles[m.key], ri = mm.mmr !== null ? rankIdx(mm.mmr) : null; return `<li><span>${m.name}</span><b style="color:${ri !== null ? TIERS[RANKS[ri].tier].glow : ''}">${ri !== null ? RANKS[ri].name : '—'}</b></li>`; }).join('')}</ul>
+    </div>
+    <h3>PERSONAL RECORDS <small>by exercise</small></h3>
+    ${rows.length ? `<div class="ac-tw"><table class="ac-table">
+      <thead><tr><th>Exercise</th><th>Heaviest</th><th>Best set</th><th>Est. 1RM</th><th>1RM/BW</th><th>Rank</th></tr></thead>
+      <tbody>${body}</tbody></table></div>` : '<p class="empty">No workouts logged yet.</p>'}
+    <footer class="ac-foot">Generated ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })} · Iron System · 1RM estimated with the Epley formula (max 12 reps)</footer>
+  </article>`;
+}
+function openAthleteCard() {
+  const sh = $('#sheet');
+  sh.innerHTML = `<div class="sheet-inner card-sheet">
+    <header class="sheet-head no-print">
+      <button class="icon-btn" data-act="cardclose" aria-label="Close">${IC.x}</button>
+      <div class="sheet-title">ATHLETE CARD</div>
+    </header>
+    <div class="sheet-body">
+      <div class="btn-row no-print"><button class="btn primary" data-act="cardpdf">PDF / PRINT</button><button class="btn" data-act="cardcsv">EXCEL (CSV)</button></div>
+      ${athleteCardHtml()}
+    </div>
+  </div>`;
+  sh.hidden = false; requestAnimationFrame(() => sh.classList.add('open'));
+  document.body.classList.add('locked', 'printing-card');
+}
+function closeAthleteCard() {
+  const sh = $('#sheet'); sh.classList.remove('open');
+  setTimeout(() => { sh.hidden = true; sh.innerHTML = ''; }, 250);
+  document.body.classList.remove('locked', 'printing-card');
+}
+function athleteCsv() {
+  const a = athleteInfo();
+  const q = v => { const t = v === null || v === undefined ? '' : String(v); return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
+  const n = (v, d = 1) => v === null || v === undefined || v === '' ? '' : (Math.round(v * 10 ** d) / 10 ** d).toString();
+  const lines = [
+    ['Athlete card', 'Iron System'],
+    ['Name', a.name], ...(a.username ? [['Username', '@' + a.username]] : []),
+    ['Age', a.age ?? ''], ['Height (cm)', a.height ?? ''], ['Bodyweight (kg)', n(a.bw)], ['BMI', n(a.bmi)], ['Strength standards', a.sex],
+    ['Rank', a.rank], ['MMR', n(a.mmr, 0)], ['Level', a.level], ['Title', a.title],
+    ['Workouts', a.workouts], ['Total volume (kg)', n(a.volume, 0)], ['Personal records', a.prs], ['Training since', a.since ?? ''],
+    ['Big 3 total est. 1RM (kg)', n(a.total, 1)],
+    [],
+    ['Exercise', 'Group', 'Heaviest weight (kg)', 'Reps at heaviest', 'Heaviest date', 'Best set volume (kg)', 'Best set weight (kg)', 'Best set reps', 'Best set date',
+      'Est. 1RM (kg)', '1RM / bodyweight', 'Rank', 'MMR', 'Sessions', 'PRs', 'Last done', 'Bodyweight exercise'],
+    ...athleteRows().map(({ s, def }) => [def.name, def.group, n(s.bestW.w), s.bestW.r, s.bestW.date, n(s.bestVol.v, 0), n(s.bestVol.w), s.bestVol.r, s.bestVol.date,
+      n(s.bestE1), s.bestMMR !== null ? n(s.bestRatio, 2) : '', s.bestMMR !== null ? RANKS[rankIdx(s.bestMMR)].name : '', s.bestMMR !== null ? n(s.bestMMR, 0) : '',
+      s.sessions, s.prs, s.last.date, def.bw ? 'yes (weight = added load)' : 'no']),
+  ];
+  // BOM para o Excel ler acentos; "sep=," (sem aspas) para o Excel em português usar a vírgula como separador
+  return '\ufeffsep=,\r\n' + lines.map(r => r.map(q).join(',')).join('\r\n');
+}
+async function downloadCsv() {
+  const name = `athlete-card-${(state.profile.name || 'hunter').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}-${todayISO()}.csv`;
+  const blob = new Blob([athleteCsv()], { type: 'text/csv;charset=utf-8' });
+  const file = new File([blob], name, { type: 'text/csv' });
+  try { if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], title: 'Athlete card' }); return; } } catch (e) { if (e.name === 'AbortError') return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  toast('CSV downloaded — open it in Excel or Google Sheets', 'ok');
+}
+
 /* ---------- editor de treino ---------- */
 let draft = null, baseline = null;
 
@@ -1645,6 +1787,10 @@ document.addEventListener('click', async ev => {
     case 'save': return saveDraft();
     case 'pick': pickTarget = null; return openPicker();
     case 'mclose': return closeModal();
+    case 'card': return openAthleteCard();
+    case 'cardclose': return closeAthleteCard();
+    case 'cardpdf': return window.print();
+    case 'cardcsv': return downloadCsv();
     case 'genplan': {
       if (!(state.gym || []).length) return toast('Select your gym equipment first', 'bad');
       const cfg = { split: 'ppl3', goal: 'hyp', len: 6, ...(state.planCfg || {}) };
@@ -1705,7 +1851,9 @@ document.addEventListener('submit', ev => {
     const bw = num(fd.get('bw'));
     if (bw < 25 || bw > 300) return toast('Invalid bodyweight', 'bad');
     if (bw !== num(state.profile.bw)) logBodyweight(bw);
-    state.profile = { ...state.profile, name: String(fd.get('name')).trim() || 'Hunter', bw, sex: fd.get('sex'), rest: clamp(Math.round(num(fd.get('rest')) || 90), 15, 600) };
+    const height = num(fd.get('height'));
+    if (height && (height < 100 || height > 250)) return toast('Height must be in cm (100–250)', 'bad');
+    state.profile = { ...state.profile, name: String(fd.get('name')).trim() || 'Hunter', bw, sex: fd.get('sex'), rest: clamp(Math.round(num(fd.get('rest')) || 90), 15, 600), height: height || null, dob: fd.get('dob') || null };
     save(); render(); toast('Profile saved', 'ok');
   }
   if (f.id === 'bwlog-form') {
@@ -1768,7 +1916,7 @@ document.addEventListener('change', ev => {
 });
 
 document.addEventListener('keydown', ev => {
-  if (ev.key === 'Escape') { if (!$('#modal').hidden) closeModal(); else if (draft) closeEditor(); }
+  if (ev.key === 'Escape') { if (!$('#modal').hidden) closeModal(); else if (draft) closeEditor(); else if ($('.card-sheet')) closeAthleteCard(); }
   if (ev.key === 'Enter' && ev.target.matches('.set input')) {
     ev.preventDefault();
     const ins = $$('.sheet .set input'); const i = ins.indexOf(ev.target); ins[i + 1]?.focus();

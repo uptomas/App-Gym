@@ -31,6 +31,7 @@ A gamified gym tracker: log your workouts, break personal records and climb the 
 - **~90 exercises** in the library (barbell, dumbbell, machine, cable, bodyweight and Olympic lifts).
 - **Records per exercise**: heaviest weight, best set volume, estimated 1RM, progress chart and history.
 - **Rest timer** that starts automatically when you log the reps of a set (±15 s, vibrates at the end; duration set in Profile).
+- **Athlete card** (Records or Profile → Athlete card): name, age, height, bodyweight, BMI, rank, level, Big 3 total, muscle ranks and every exercise's PRs (heaviest set, best set volume, est. 1RM). Export as **PDF** (print → save as PDF, clean white A4 layout) or **CSV** for Excel / Google Sheets.
 - Custom exercises, JSON backup export/import, sample data.
 - **Online mode (optional, Supabase)**: accounts (Google or email), automatic cloud backup/sync across devices, friends by @username or invite link, friends and global leaderboards (by rank or level), player cards with muscle map and top lifts. Workouts and bodyweight stay private. Setup: [SUPABASE_SETUP.md](SUPABASE_SETUP.md).
 - PWA: works offline and can be installed on your phone ("Add to Home Screen").
