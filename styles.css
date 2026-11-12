@@ -726,3 +726,13 @@ input[type="date"] { color-scheme: dark; }
 .bodymap .bm-vol path { fill: url(#bmVol); stroke: none; pointer-events: none; }
 @media print { .bodymap .bm-vol { opacity: .5; } }
 @media print { .bodymap .bm-n { fill: #e3eafa; stroke: #b5c4e6; } .bodymap .bm-m:not(.on) { fill: #d3def7; stroke: #a9bbe3; } .bodymap .bm-outline { stroke: #6f86b8; filter: none; } .bodymap .bm-hair { fill: #8a9bc2; } }
+
+/* power level */
+.kv b.pwr { font-family: var(--hd); font-size: 14px; color: var(--gold); text-shadow: 0 0 10px rgba(255, 207, 74, .7); }
+.hero-pwr { display: grid; justify-items: center; margin-top: 2px; }
+.hero-pwr span { font-family: var(--hd); font-size: 10px; letter-spacing: .3em; color: var(--muted); }
+.hero-pwr b { font-family: var(--hd); font-weight: 900; font-size: 34px; color: #fff; text-shadow: 0 0 14px var(--glow), 0 0 30px var(--glow); }
+.hero-pwr i { font-style: normal; font-family: var(--hd); font-weight: 900; font-size: 13px; letter-spacing: .12em; color: var(--gold); text-shadow: 0 0 12px var(--gold); animation: pulse 1s infinite; }
+.over9000 { font-family: var(--hd); font-weight: 900; font-size: 24px; color: var(--gold); text-shadow: 0 0 16px var(--gold); animation: lvlPulse 1.2s ease-in-out infinite; }
+.pwr-line { font-family: var(--hd); font-size: 13px; color: var(--muted); }
+.pwr-line b { color: var(--gold); }

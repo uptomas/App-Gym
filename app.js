@@ -30,14 +30,15 @@ const blendMMR = (str, vol) => W_STR * str + W_VOL * vol;
 
 /* ---------- ranks (estilo liga competitiva) ---------- */
 const TIERS = [
-  { key: 'bronze', name: 'Bronze', c1: '#ffbf8a', c2: '#6e3416', glow: '#ff8f45' },
-  { key: 'silver', name: 'Silver', c1: '#ffffff', c2: '#5d6a85', glow: '#c9dcff' },
-  { key: 'gold', name: 'Gold', c1: '#fff1a6', c2: '#a1630a', glow: '#ffc531' },
-  { key: 'plat', name: 'Platinum', c1: '#c9fff6', c2: '#127481', glow: '#3ff0d6' },
-  { key: 'diamond', name: 'Diamond', c1: '#cfe9ff', c2: '#1739b8', glow: '#3d9bff' },
-  { key: 'champ', name: 'Champion', c1: '#f0d4ff', c2: '#4b1596', glow: '#b45cff' },
-  { key: 'gc', name: 'Grand Champion', c1: '#ffc4cf', c2: '#8a0a27', glow: '#ff3b5c' },
-  { key: 'legend', name: 'Legend', c1: '#ffffff', c2: '#2a1cff', glow: '#9fb8ff' },
+  // transformações de poder (as chaves internas mantêm-se para compatibilidade)
+  { key: 'bronze', name: 'Base Form', c1: '#ffcf9e', c2: '#8a3a12', glow: '#ff8f45' },
+  { key: 'silver', name: 'Battle Aura', c1: '#ffffff', c2: '#6b7fa8', glow: '#d6e6ff' },
+  { key: 'gold', name: 'Golden Warrior', c1: '#fff3a6', c2: '#b07a00', glow: '#ffd21f' },
+  { key: 'plat', name: 'Ascended Lightning', c1: '#d9fffa', c2: '#0f7d8a', glow: '#38f2ff' },
+  { key: 'diamond', name: 'Primal Fury', c1: '#ffc0a8', c2: '#8a1c0a', glow: '#ff5a36' },
+  { key: 'champ', name: 'Crimson God', c1: '#ffc4dc', c2: '#8a0a3c', glow: '#ff2e7e' },
+  { key: 'gc', name: 'Azure God', c1: '#cdf3ff', c2: '#0b4fc2', glow: '#3dc8ff' },
+  { key: 'legend', name: 'Limit Breaker', c1: '#ffffff', c2: '#5b3bd6', glow: '#d2c4ff' },
 ];
 const STEP = 75; // MMR por divisão
 const ROMAN = ['I', 'II', 'III'];
@@ -46,6 +47,9 @@ TIERS.forEach((t, ti) => {
   if (t.key === 'legend') RANKS.push({ tier: ti, div: 0, name: t.name, min: RANKS.length * STEP });
   else for (let d = 1; d <= 3; d++) RANKS.push({ tier: ti, div: d, name: `${t.name} ${ROMAN[d - 1]}`, min: RANKS.length * STEP });
 });
+// Power Level: cresce exponencialmente com o MMR e passa os 9000 exatamente no rank máximo
+const POWER_K = Math.log(900.1) / 1575;
+const powerLevel = mmr => Math.round(10 * Math.exp(POWER_K * Math.max(0, mmr)));
 const rankIdx = mmr => clamp(Math.floor(mmr / STEP), 0, RANKS.length - 1);
 
 /* Normas de força (1RM / peso corporal) — iniciante, novato, intermédio, avançado, elite.
@@ -471,6 +475,7 @@ const VIEWS = {
           <div class="kv"><span>NAME</span><b>${esc(p.name)}</b></div>
           <div class="kv"><span>TITLE</span><b class="glowtxt">${titleFor(L.lvl)}</b></div>
           <div class="kv"><span>RANK</span><b style="color:${C.count ? TIERS[rk.tier].glow : 'var(--muted)'}">${C.count ? rk.name : 'Unranked'}${C.placement && C.count ? ' <small>(provisional)</small>' : ''}</b></div>
+          <div class="kv"><span>POWER</span><b class="pwr">${fmt(powerLevel(C.mmr), 0)}</b></div>
           <div class="kv"><span>WEIGHT</span><b>${fmtKg(p.bw)}</b></div>
         </div>
         <button class="status-emblem" data-go="ranking">${emblem(C.count ? C.rank : null, 84, 'float')}</button>
@@ -585,6 +590,7 @@ const VIEWS = {
       ${C.count && C.ranked.length && C.placement ? `<div class="placement">PLACEMENTS · ${C.musclesRanked}/4 muscles ranked</div>` : ''}
       <div class="hero-emblem">${emblem(C.ranked.length ? C.rank : null, 170, 'float')}</div>
       <div class="hero-name" style="color:${C.ranked.length ? t.glow : 'var(--muted)'}">${C.ranked.length ? rk.name : 'UNRANKED'}</div>
+      <div class="hero-pwr"><span>POWER LEVEL</span><b>${fmt(powerLevel(C.mmr), 0)}</b>${powerLevel(C.mmr) > 9000 ? '<i>IT\'S OVER 9000!</i>' : ''}</div>
       <div class="hero-mmr"><b>${fmt(C.mmr, 0)}</b> MMR</div>
       ${C.ranked.length ? `
       <div class="div-progress">
@@ -615,7 +621,7 @@ const VIEWS = {
         <p>• <b>70% — estimated 1RM</b> (Epley formula).<br>• <b>30% — volume</b>: your best single set (weight × reps).</p><p>Reps above 12 in a set don't count for either, so very long sets with light weight can't inflate your rank.</p>
         <p>Training more often, doing more sets or earning EXP does <b>not</b> raise your rank — only lifting heavier or doing a bigger set does. EXP and levels reward consistency separately.</p>
         <p>Each <b>muscle</b> takes the rank of your best exercise that trains it (e.g. Chest uses the best of your bench presses, pec deck and dips).</p><p>Your <b>overall rank</b> is the average of the 8 main muscles (chest, back, shoulders, biceps, triceps, quads, hamstrings and glutes). Untrained muscles count as 0, so a balanced physique climbs faster. Calves and abs show on the map but don't count. You need 4 ranked muscles to finish placements.</p><p>For bodyweight exercises (pull-ups, dips) your bodyweight + added load counts.</p>
-        <p>Beginner ≈ Silver · Novice ≈ Gold · Intermediate ≈ Platinum · Advanced ≈ Champion · Elite ≈ Grand Champion.</p>
+        <p>Beginner ≈ Battle Aura · Novice ≈ Golden Warrior · Intermediate ≈ Ascended Lightning · Advanced ≈ Crimson God · Elite ≈ Azure God · beyond elite ≈ Limit Breaker (power level over 9000).</p>
       </details>
     </section>
 
@@ -627,7 +633,7 @@ const VIEWS = {
           const active = C.ranked.length && RANKS[C.rank].tier === ti;
           return `<li class="${active ? 'active' : ''}" style="--glow:${tt.glow}">
             <div class="lad-emb">${idxs.map(o => emblem(o.i, ti === 7 ? 52 : 38, C.ranked.length && o.i === C.rank ? 'me' : '')).join('')}</div>
-            <div class="lad-txt"><b style="color:${tt.glow}">${tt.name}</b><span>${idxs[0].r.min}${ti === 7 ? '+' : `–${idxs[idxs.length - 1].r.min + STEP - 1}`} MMR</span></div>
+            <div class="lad-txt"><b style="color:${tt.glow}">${tt.name}</b><span>Power ${fmt(powerLevel(idxs[0].r.min), 0)}${ti === 7 ? '+' : `–${fmt(powerLevel(idxs[idxs.length - 1].r.min + STEP - 1), 0)}`}</span></div>
           </li>`;
         }).reverse().join('')}
       </ul>
@@ -1290,7 +1296,7 @@ function athleteCardHtml() {
         <div class="ac-label">ATHLETE CARD · IRON SYSTEM</div>
         <h2>${esc(a.name)}</h2>
         ${a.username ? `<div class="ac-user">@${esc(a.username)}</div>` : ''}
-        <div class="ac-rank">${a.rank} · ${fmt(a.mmr, 0)} MMR · LV ${a.level} <i>${a.title}</i></div>
+        <div class="ac-rank">${a.rank} · Power ${fmt(powerLevel(a.mmr), 0)} · LV ${a.level} <i>${a.title}</i></div>
       </div>
     </div>
     <div class="ac-grid">
@@ -1680,7 +1686,7 @@ function saveDraft() {
   const overallUp = after.ranked.length && (after.rank > before.rank || (!before.ranked.length));
   if (overallUp) {
     const t = TIERS[RANKS[after.rank].tier];
-    alerts.push({ kind: 'rank', html: `<p class="sys-big">${before.ranked.length ? 'RANK PROMOTION' : 'RANK ASSIGNED'}</p><div class="alert-emblem" style="--glow:${t.glow}">${emblem(after.rank, 140, 'float')}</div><p class="rank-name" style="color:${t.glow}">${RANKS[after.rank].name}</p>${before.ranked.length ? `<p class="muted">${RANKS[before.rank].name} → ${RANKS[after.rank].name}</p>` : ''}${after.placement ? '<p class="muted">Provisional — get 4 muscles ranked.</p>' : ''}` });
+    alerts.push({ kind: 'rank', html: `<p class="sys-big">${before.ranked.length ? 'POWER UP!' : 'POWER AWAKENED'}</p>${after.rank === RANKS.length - 1 ? '<p class="over9000">IT\'S OVER 9000!!!</p>' : ''}<div class="alert-emblem" style="--glow:${t.glow}">${emblem(after.rank, 140, 'float')}</div><p class="rank-name" style="color:${t.glow}">${RANKS[after.rank].name}</p>${before.ranked.length ? `<p class="muted">${RANKS[before.rank].name} → ${RANKS[after.rank].name}</p>` : ''}<p class="pwr-line">Power level <b>${fmt(powerLevel(before.mmr), 0)}</b> → <b>${fmt(powerLevel(after.mmr), 0)}</b></p>${after.placement ? '<p class="muted">Provisional — get 4 muscles ranked.</p>' : ''}` });
   }
   const mUps = MUSCLES.map(m => {
     const a = after.muscles[m.key].mmr, b = before.muscles[m.key].mmr;
