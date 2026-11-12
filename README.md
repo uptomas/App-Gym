@@ -57,6 +57,6 @@ To use it on your phone, publish it with **GitHub Pages** (Settings → Pages �
 - `app.js`: logic (workouts, PRs, EXP, ranking, SVG emblems, muscle map)
 - `social.js`: online mode (auth, sync, friends, leaderboards); `config.js`: Supabase URL + anon key
 - `supabase/schema.sql`: database tables and row level security
-- `vendor/`: supabase-js 2.45.4 (MIT)
+- `vendor/`: supabase-js 2.45.4 (MIT); `bodymap-data.js` — anatomical body artwork from react-native-body-highlighter 3.2.0 (MIT, © 2022 ELABBASSI Hicham)
 - `sw.js` and `manifest.webmanifest`: offline support / install
 - `apple-touch-icon.png`, `icon-*.png`, `favicon-32.png`: app icons

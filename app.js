@@ -402,49 +402,22 @@ function emblem(idx, size = 64, cls = '') {
   return s + '</svg>';
 }
 
-/* ---------- mapa muscular (frente + costas) ---------- */
-const BODY_COMMON = [
-  [null, [[92, 54], [108, 54], [110, 70], [90, 70]], 1],
-  [null, [[49, 142], [64, 144], [60, 188], [48, 186], [44, 164]]],
-  [null, [[46, 190], [60, 190], [58, 206], [48, 206]]],
-  [null, [[84, 270], [96, 264], [95, 282], [77, 282]]],
-  [null, [[79, 350], [92, 350], [95, 364], [75, 364]]],
-  ['shoulders', [[60, 74], [78, 66], [80, 84], [68, 100], [54, 94]]],
-];
-const BODY_FRONT = [
-  [null, [[76, 160], [100, 182], [124, 160], [126, 186], [100, 194], [74, 186]], 1],
-  [null, [[73, 106], [85, 113], [87, 168], [77, 160], [72, 132]]],
-  ['chest', [[81, 72], [98, 75], [98, 108], [84, 111], [71, 102], [76, 86]]],
-  ['biceps', [[54, 98], [67, 104], [65, 140], [52, 138], [49, 118]]],
-  ['abs', [[87, 114], [113, 114], [112, 170], [100, 180], [88, 170]], 1],
-  ['quads', [[77, 186], [98, 192], [96, 262], [85, 268], [74, 252], [71, 212]]],
-  ['calves', [[77, 284], [93, 284], [90, 346], [81, 348], [75, 320]]],
-];
-const BODY_BACK = [
-  ['back', [[84, 58], [100, 54], [116, 58], [127, 72], [112, 84], [100, 100], [88, 84], [73, 72]], 1],
-  ['back', [[72, 82], [88, 88], [99, 104], [99, 140], [86, 148], [75, 122], [70, 98]]],
-  ['back', [[87, 150], [100, 143], [113, 150], [111, 168], [89, 168]], 1],
-  ['triceps', [[54, 98], [67, 102], [66, 138], [53, 140], [49, 118]]],
-  ['glutes', [[76, 171], [99, 174], [99, 208], [85, 212], [73, 196]]],
-  ['hamstrings', [[75, 214], [97, 214], [94, 266], [83, 270], [73, 246]]],
-  ['calves', [[75, 284], [94, 284], [93, 326], [85, 346], [76, 326]]],
-];
+/* ---------- mapa muscular (frente + costas) ----------
+   Desenho anatómico em vendor/bodymap-data.js (window.BODY_ART). */
 function bodyMap(muscles, sel) {
-  const poly = (pts, dx) => pts.map(([x, y]) => `${x + dx},${y}`).join(' ');
-  const mir = pts => pts.map(([x, y]) => [200 - x, y]);
-  const draw = (shapes, dx) => shapes.map(([key, pts, center]) => {
-    let attrs;
-    if (!key) attrs = 'class="bm-n"';
-    else {
-      const m = muscles[key], ri = m.mmr !== null ? rankIdx(m.mmr) : null, t = ri !== null ? TIERS[RANKS[ri].tier] : null;
-      attrs = `class="bm-m ${t ? 'on' : ''} ${sel === key ? 'sel' : ''}" data-muscle="${key}" style="${t ? `--f:${t.glow};--s:${t.c1}` : ''}"`;
-    }
-    return `<polygon ${attrs} points="${poly(pts, dx)}"/>` + (center ? '' : `<polygon ${attrs} points="${poly(mir(pts), dx)}"/>`);
-  }).join('');
-  return `<svg class="bodymap" viewBox="0 0 420 372" role="img" aria-label="Muscle map">
-    <circle class="bm-n" cx="100" cy="34" r="17"/><circle class="bm-n" cx="320" cy="34" r="17"/>
-    ${draw([...BODY_COMMON, ...BODY_FRONT], 0)}${draw([...BODY_COMMON, ...BODY_BACK], 220)}
-    <text x="100" y="371" class="bm-lbl">FRONT</text><text x="320" y="371" class="bm-lbl">BACK</text>
+  const A = window.BODY_ART;
+  if (!A) return '';
+  const cls = key => {
+    const m = muscles[key], ri = m && m.mmr !== null ? rankIdx(m.mmr) : null, t = ri !== null ? TIERS[RANKS[ri].tier] : null;
+    return `class="bm-m ${t ? 'on' : ''} ${sel === key ? 'sel' : ''}" data-muscle="${key}" style="${t ? `--f:${t.glow};--s:${t.c1}` : ''}"`;
+  };
+  const part = ([k, slug, d]) => slug === 'hair' ? `<path class="bm-hair" d="${d}"/>` : `<path ${k ? cls(k) : 'class="bm-n"'} d="${d}"/>`;
+  return `<svg class="bodymap" viewBox="0 70 1448 1350" role="img" aria-label="Muscle map">
+    <defs><radialGradient id="bmGlow" cx="50%" cy="45%" r="55%"><stop offset="0" stop-color="#2f6bff" stop-opacity=".22"/><stop offset="1" stop-color="#2f6bff" stop-opacity="0"/></radialGradient></defs>
+    <ellipse cx="362" cy="760" rx="330" ry="640" fill="url(#bmGlow)"/><ellipse cx="1086" cy="760" rx="330" ry="640" fill="url(#bmGlow)"/>
+    ${A.front.map(part).join('')}${A.back.map(part).join('')}
+    <path class="bm-outline" d="${A.outline.front}"/><path class="bm-outline" d="${A.outline.back}"/>
+    <text x="362" y="1405" class="bm-lbl">FRONT</text><text x="1086" y="1405" class="bm-lbl">BACK</text>
   </svg>`;
 }
 

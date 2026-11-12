@@ -1,5 +1,5 @@
-const CACHE = 'iron-system-v15';
-const ASSETS = ['./', './index.html', './styles.css', './app.js', './social.js', './config.js', './vendor/supabase-2.45.4.js', './manifest.webmanifest', './apple-touch-icon.png', './icon-192.png', './icon-512.png'];
+const CACHE = 'iron-system-v17';
+const ASSETS = ['./', './index.html', './styles.css', './app.js', './social.js', './config.js', './vendor/supabase-2.45.4.js', './vendor/bodymap-data.js', './manifest.webmanifest', './apple-touch-icon.png', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS))); self.skipWaiting(); });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))));
