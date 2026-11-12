@@ -11,7 +11,7 @@ A gamified gym tracker: log your workouts, break personal records and climb the 
   - PRs light up live while you type and appear in the history, the feed and a System notification.
 - **Power-up ranking**: Earthling → Kai-Rep → Super Swole → Super Swole 2 → Super Swole 3 → Super Swole God → Super Swole Blue (each with I, II, III) → Ultra Gainstinct, plus an exponential **Power Level** that goes over 9000 at Ultra Gainstinct.
   - Per exercise: **70% estimated 1RM + 30% best set volume**, both relative to bodyweight on that day, compared against strength standards (beginner → elite) and converted to MMR. Reps above 12 don't count, and training more often or earning EXP never raises your rank — only lifting heavier or doing a bigger set does.
-  - **Muscle map** (front and back): each muscle (chest, back, shoulders, biceps, triceps, quads, hamstrings, glutes, calves, abs) takes the rank of your best exercise for it and is painted in its league colour.
+  - **Muscle map** (front and back): each muscle (chest, back, shoulders, biceps, triceps, quads, hamstrings, glutes, calves, abs, forearms, obliques) takes the rank of your best exercise for it and is painted in its league colour.
   - Overall rank = average of the 8 main muscles. Untrained muscles count as 0, so a balanced physique climbs faster. You finish placements with 4 ranked muscles.
   - Shows the 1RM you need for the next division.
   - Male and female strength standards (choose in Profile).
@@ -29,7 +29,7 @@ A gamified gym tracker: log your workouts, break personal records and climb the 
   - **Load per exercise**: top set, estimated 1RM, best set volume or session volume, with your target line.
   - **Weekly volume** bar chart.
 - **Targets**: set the weight you want to lift for any exercise; reaching it completes a quest (+200 EXP).
-- **~90 exercises** in the library (barbell, dumbbell, machine, cable, bodyweight and Olympic lifts).
+- **~110 exercises** (now with forearm and oblique work) in the library (barbell, dumbbell, machine, cable, bodyweight and Olympic lifts).
 - **Records per exercise**: heaviest weight, best set volume, estimated 1RM, progress chart and history.
 - **Rest timer** that starts automatically when you log the reps of a set (±15 s, vibrates at the end; duration set in Profile).
 - **Athlete card** (Records or Profile → Athlete card): name, age, height, bodyweight, BMI, rank, level, Big 3 total, muscle ranks and every exercise's PRs (heaviest set, best set volume, est. 1RM). Export as **PDF** (print → save as PDF, clean white A4 layout) or **CSV** for Excel / Google Sheets.
