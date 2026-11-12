@@ -31,21 +31,21 @@ const blendMMR = (str, vol) => W_STR * str + W_VOL * vol;
 /* ---------- ranks (estilo liga competitiva) ---------- */
 const TIERS = [
   // transformações de poder (as chaves internas mantêm-se para compatibilidade)
-  { key: 'bronze', name: 'Base Form', c1: '#ffcf9e', c2: '#8a3a12', glow: '#ff8f45' },
-  { key: 'silver', name: 'Battle Aura', c1: '#ffffff', c2: '#6b7fa8', glow: '#d6e6ff' },
-  { key: 'gold', name: 'Golden Warrior', c1: '#fff3a6', c2: '#b07a00', glow: '#ffd21f' },
-  { key: 'plat', name: 'Ascended Lightning', c1: '#d9fffa', c2: '#0f7d8a', glow: '#38f2ff' },
-  { key: 'diamond', name: 'Primal Fury', c1: '#ffc0a8', c2: '#8a1c0a', glow: '#ff5a36' },
-  { key: 'champ', name: 'Crimson God', c1: '#ffc4dc', c2: '#8a0a3c', glow: '#ff2e7e' },
-  { key: 'gc', name: 'Azure God', c1: '#cdf3ff', c2: '#0b4fc2', glow: '#3dc8ff' },
-  { key: 'legend', name: 'Limit Breaker', c1: '#ffffff', c2: '#5b3bd6', glow: '#d2c4ff' },
+  { key: 'bronze', name: 'Earthling', c1: '#ffcf9e', c2: '#8a3a12', glow: '#ff8f45' },
+  { key: 'silver', name: 'Kai-Rep', c1: '#ffc2b8', c2: '#9a1010', glow: '#ff4a3d' },
+  { key: 'gold', name: 'Super Swole', c1: '#fff3a6', c2: '#b07a00', glow: '#ffd21f' },
+  { key: 'plat', name: 'Super Swole 2', c1: '#ffffd6', c2: '#c9a000', glow: '#f6ff3d' },
+  { key: 'diamond', name: 'Super Swole 3', c1: '#ffe0a0', c2: '#9a5200', glow: '#ff9d00' },
+  { key: 'champ', name: 'Super Swole God', c1: '#ffc4dc', c2: '#8a0a3c', glow: '#ff2e7e' },
+  { key: 'gc', name: 'Super Swole Blue', c1: '#cdf3ff', c2: '#0b4fc2', glow: '#3dc8ff' },
+  { key: 'legend', name: 'Ultra Gainstinct', c1: '#ffffff', c2: '#6f7fa0', glow: '#e6ecff' },
 ];
 const STEP = 75; // MMR por divisão
 const ROMAN = ['I', 'II', 'III'];
 const RANKS = [];
 TIERS.forEach((t, ti) => {
   if (t.key === 'legend') RANKS.push({ tier: ti, div: 0, name: t.name, min: RANKS.length * STEP });
-  else for (let d = 1; d <= 3; d++) RANKS.push({ tier: ti, div: d, name: `${t.name} ${ROMAN[d - 1]}`, min: RANKS.length * STEP });
+  else for (let d = 1; d <= 3; d++) RANKS.push({ tier: ti, div: d, name: `${t.name} · ${ROMAN[d - 1]}`, min: RANKS.length * STEP });
 });
 // Power Level: cresce exponencialmente com o MMR e passa os 9000 exatamente no rank máximo
 const POWER_K = Math.log(900.1) / 1575;
@@ -621,7 +621,7 @@ const VIEWS = {
         <p>• <b>70% — estimated 1RM</b> (Epley formula).<br>• <b>30% — volume</b>: your best single set (weight × reps).</p><p>Reps above 12 in a set don't count for either, so very long sets with light weight can't inflate your rank.</p>
         <p>Training more often, doing more sets or earning EXP does <b>not</b> raise your rank — only lifting heavier or doing a bigger set does. EXP and levels reward consistency separately.</p>
         <p>Each <b>muscle</b> takes the rank of your best exercise that trains it (e.g. Chest uses the best of your bench presses, pec deck and dips).</p><p>Your <b>overall rank</b> is the average of the 8 main muscles (chest, back, shoulders, biceps, triceps, quads, hamstrings and glutes). Untrained muscles count as 0, so a balanced physique climbs faster. Calves and abs show on the map but don't count. You need 4 ranked muscles to finish placements.</p><p>For bodyweight exercises (pull-ups, dips) your bodyweight + added load counts.</p>
-        <p>Beginner ≈ Battle Aura · Novice ≈ Golden Warrior · Intermediate ≈ Ascended Lightning · Advanced ≈ Crimson God · Elite ≈ Azure God · beyond elite ≈ Limit Breaker (power level over 9000).</p>
+        <p>Beginner ≈ Kai-Rep · Novice ≈ Super Swole · Intermediate ≈ Super Swole 2 · Advanced ≈ Super Swole God · Elite ≈ Super Swole Blue · beyond elite ≈ Ultra Gainstinct (power level over 9000).</p>
       </details>
     </section>
 
