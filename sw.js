@@ -1,4 +1,4 @@
-const CACHE = 'iron-system-v21';
+const CACHE = 'iron-system-v22';
 const ASSETS = ['./', './index.html', './styles.css', './app.js', './social.js', './config.js', './vendor/supabase-2.45.4.js', './vendor/bodymap-data.js', './manifest.webmanifest', './apple-touch-icon.png', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS))); self.skipWaiting(); });
 self.addEventListener('activate', e => {
