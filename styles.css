@@ -723,4 +723,6 @@ input[type="date"] { color-scheme: dark; }
 .bodymap .bm-m.on { fill: color-mix(in srgb, var(--f) 82%, #0a1a40); stroke: color-mix(in srgb, var(--s) 70%, #fff); stroke-width: .7; filter: drop-shadow(0 0 4px color-mix(in srgb, var(--f) 70%, transparent)); }
 .bodymap .bm-m.sel { stroke: #fff; stroke-width: 1.6; }
 .bodymap .bm-lbl { font-size: 34px; letter-spacing: .35em; }
+.bodymap .bm-vol path { fill: url(#bmVol); stroke: none; pointer-events: none; }
+@media print { .bodymap .bm-vol { opacity: .5; } }
 @media print { .bodymap .bm-n { fill: #e3eafa; stroke: #b5c4e6; } .bodymap .bm-m:not(.on) { fill: #d3def7; stroke: #a9bbe3; } .bodymap .bm-outline { stroke: #6f86b8; filter: none; } .bodymap .bm-hair { fill: #8a9bc2; } }

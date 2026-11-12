@@ -413,9 +413,11 @@ function bodyMap(muscles, sel) {
   };
   const part = ([k, slug, d]) => slug === 'hair' ? `<path class="bm-hair" d="${d}"/>` : `<path ${k ? cls(k) : 'class="bm-n"'} d="${d}"/>`;
   return `<svg class="bodymap" viewBox="0 70 1448 1350" role="img" aria-label="Muscle map">
-    <defs><radialGradient id="bmGlow" cx="50%" cy="45%" r="55%"><stop offset="0" stop-color="#2f6bff" stop-opacity=".22"/><stop offset="1" stop-color="#2f6bff" stop-opacity="0"/></radialGradient></defs>
+    <defs><radialGradient id="bmVol" cx="35%" cy="28%" r="85%"><stop offset="0" stop-color="#fff" stop-opacity=".42"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset=".8" stop-color="#000" stop-opacity=".18"/><stop offset="1" stop-color="#000" stop-opacity=".38"/></radialGradient>
+      <radialGradient id="bmGlow" cx="50%" cy="45%" r="55%"><stop offset="0" stop-color="#2f6bff" stop-opacity=".22"/><stop offset="1" stop-color="#2f6bff" stop-opacity="0"/></radialGradient></defs>
     <ellipse cx="362" cy="760" rx="330" ry="640" fill="url(#bmGlow)"/><ellipse cx="1086" cy="760" rx="330" ry="640" fill="url(#bmGlow)"/>
     ${A.front.map(part).join('')}${A.back.map(part).join('')}
+    <g class="bm-vol">${[...A.front, ...A.back].filter(([k]) => k).map(([, , d]) => `<path d="${d}"/>`).join('')}</g>
     <path class="bm-outline" d="${A.outline.front}"/><path class="bm-outline" d="${A.outline.back}"/>
     <text x="362" y="1405" class="bm-lbl">FRONT</text><text x="1086" y="1405" class="bm-lbl">BACK</text>
   </svg>`;
