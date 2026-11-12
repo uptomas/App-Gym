@@ -736,3 +736,6 @@ input[type="date"] { color-scheme: dark; }
 .over9000 { font-family: var(--hd); font-weight: 900; font-size: 24px; color: var(--gold); text-shadow: 0 0 16px var(--gold); animation: lvlPulse 1.2s ease-in-out infinite; }
 .pwr-line { font-family: var(--hd); font-size: 13px; color: var(--muted); }
 .pwr-line b { color: var(--gold); }
+.bodymap .bm-hair { fill: #101b42; stroke: none; filter: drop-shadow(0 0 1.5px rgba(130, 190, 255, .75)); }
+.bodymap .bm-hairline { fill: none; stroke: rgba(150, 200, 255, .42); stroke-width: .8; stroke-linecap: round; pointer-events: none; }
+@media print { .bodymap .bm-hair { fill: #5b6c94; } .bodymap .bm-hairline { stroke: rgba(255, 255, 255, .5); } }
