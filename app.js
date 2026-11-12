@@ -343,6 +343,7 @@ function compute(st = state, excludeId = null) {
   // objetivos de peso atingidos: +200 EXP cada
   const goalsReached = Object.entries(st.goals || {}).filter(([id, g]) => num(g) > 0 && ex[id] && ex[id].bestW.w >= num(g)).map(([id]) => id);
   xp += goalsReached.length * 200;
+  xp += Object.values(st.questLog || {}).reduce((a, l) => a + (l.xp || 0), 0); // recompensas das missões diárias
   const lv = levelFromXP(xp);
 
   return {
@@ -508,26 +509,7 @@ const VIEWS = {
       </div>
     </section>
 
-    <section class="panel quest">
-      <div class="panel-title"><span>DAILY QUEST</span></div>
-      <div class="quest-head">Quest: Get Stronger</div>
-      <ul class="quest-list">
-        <li class="${C.trainedToday ? 'done' : ''}"><span>Complete a workout today</span><b>[${C.trainedToday ? 1 : 0}/1]</b></li>
-        <li class="${C.thisWeek >= 3 ? 'done' : ''}"><span>Workouts this week</span><b>[${Math.min(C.thisWeek, 3)}/3]</b></li>
-        <li class="${C.streak >= 4 ? 'done' : ''}"><span>Weeks in a row training</span><b>[${Math.min(C.streak, 4)}/4]</b></li>
-      </ul>
-      ${C.trainedToday ? '<div class="quest-ok">DAILY QUEST COMPLETE</div>' : '<div class="quest-warn">⚠ Failing the daily quest carries no penalty… this time.</div>'}
-      ${(() => {
-        const tp = todayPlanDay();
-        if (!tp) return `<button class="btn primary wide" data-act="new">${IC.plus}<span>START WORKOUT</span></button>
-          <button class="btn ghost wide" data-wview="plan">${IC.bolt}<span>CREATE A TRAINING PLAN</span></button>`;
-        return `<div class="today-plan ${tp.today ? '' : 'rest'}">
-            <div><span>${tp.today ? "TODAY'S PLAN" : 'REST DAY · NEXT'}</span><b>${esc(tp.day.name)}${tp.today ? '' : ` <small>${WEEKDAYS[tp.day.weekday]}</small>`}</b><small>${tp.day.ex.length} exercises · ${DAY_T[tp.day.type].focus}</small></div>
-          </div>
-          <button class="btn primary wide" data-startday="${tp.i}">${IC.bolt}<span>START ${esc(tp.day.name.toUpperCase())}</span></button>
-          <button class="btn ghost wide" data-act="new">${IC.plus}<span>FREE WORKOUT</span></button>`;
-      })()}
-    </section>
+    ${questPanel()}
 
     <section class="grid3">
       <div class="panel mini"><span>WORKOUTS</span><b>${C.count}</b></div>
@@ -1415,6 +1397,104 @@ async function downloadCsv() {
   toast('CSV downloaded — open it in Excel or Google Sheets', 'ok');
 }
 
+
+/* ---------- missões diárias (dependem do treino do dia) ---------- */
+const QUEST_XP = { train: 100, rest: 30, free: 50, bonus: 50 };
+function dailyQuests(c = C) {
+  const t = todayISO();
+  const ws = state.workouts.filter(w => w.date === t);
+  const done = ws.flatMap(w => w.exercises);
+  const setsOf = id => done.filter(e => e.exId === id).reduce((a, e) => a + e.sets.filter(s => num(s.r) > 0).length, 0);
+  const bestToday = id => Math.max(0, ...done.filter(e => e.exId === id).flatMap(e => e.sets.filter(s => num(s.r) > 0).map(s => num(s.w))));
+  const prToday = c.prList.filter(p => p.date === t);
+  const tp = todayPlanDay();
+  const planDays = state.plan?.days.length || 0;
+  const daysThisWeek = new Set(state.workouts.filter(w => weekKey(w.date) === weekKey(t)).map(w => w.date)).size; // dias, não treinos
+  const weekly = planDays
+    ? { label: `Planned sessions this week`, cur: Math.min(daysThisWeek, planDays), max: planDays }
+    : { label: 'Training days this week', cur: Math.min(daysThisWeek, 3), max: 3 };
+
+  // dia de treino do plano
+  if (tp?.today && tp.day.ex.length) {
+    const day = tp.day, main = day.ex[0], mainDef = getEx(main.id);
+    const planned = day.ex.reduce((a, e) => a + e.sets, 0);
+    const setsDone = day.ex.reduce((a, e) => a + Math.min(e.sets, setsOf(e.id)), 0);
+    const exDone = day.ex.filter(e => setsOf(e.id) > 0).length;
+    const quests = [
+      { label: `Complete ${day.name}`, cur: ws.length && exDone ? 1 : 0, max: 1 },
+      { label: `Train all ${day.ex.length} planned exercises`, cur: exDone, max: day.ex.length },
+      { label: `Finish ${planned} working sets`, cur: setsDone, max: planned },
+    ];
+    const goal = num(state.goals?.[main.id]);
+    if (mainDef) {
+      if (goal && !c.goalsReached.includes(main.id)) quests.push({ bonus: true, label: `Lift your target on ${mainDef.name}: ${fmtKg(goal)}`, cur: bestToday(main.id) >= goal ? 1 : 0, max: 1 });
+      else quests.push({ bonus: true, label: `Beat a record on ${mainDef.name}`, cur: prToday.some(p => p.exId === main.id) ? 1 : 0, max: 1 });
+    }
+    return { kind: 'train', title: `Conquer ${day.name}`, sub: DAY_T[day.type].focus, quests, weekly, reward: QUEST_XP.train };
+  }
+  // dia de descanso com plano
+  if (tp) {
+    return {
+      kind: 'rest', title: 'Recovery', sub: `Rest day — next: ${tp.day.name} on ${WEEKDAYS[tp.day.weekday]}`,
+      quests: [
+        { label: 'Let your muscles recover', cur: 1, max: 1 },
+        { label: "Log today's bodyweight", cur: (state.bwLog || []).some(e => e.date === t) ? 1 : 0, max: 1, hint: 'Progress → Bodyweight → LOG' },
+      ],
+      weekly, reward: QUEST_XP.rest,
+    };
+  }
+  // sem plano
+  return {
+    kind: 'free', title: 'Get Stronger', sub: 'Create a training plan to get quests made for your day',
+    quests: [
+      { label: 'Complete a workout today', cur: ws.length ? 1 : 0, max: 1 },
+      { label: 'Train at least 4 exercises', cur: Math.min(new Set(done.map(e => e.exId)).size, 4), max: 4 },
+      { bonus: true, label: 'Set a new personal record', cur: prToday.length ? 1 : 0, max: 1 },
+    ],
+    weekly, reward: QUEST_XP.free,
+  };
+}
+const questDone = q => q.cur >= q.max;
+// dá a recompensa (uma vez por dia) quando as missões ficam completas; devolve notificações
+function awardDailyQuests() {
+  const t = todayISO(), dq = dailyQuests(compute());
+  const log = (state.questLog ||= {})[t] ||= { xp: 0 };
+  const alerts = [];
+  const main = dq.quests.filter(q => !q.bonus), bonus = dq.quests.filter(q => q.bonus);
+  if (!log.main && main.every(questDone)) {
+    log.main = true; log.xp += dq.reward;
+    alerts.push({ kind: 'quest', html: `<p class="sys-big">DAILY QUEST COMPLETE</p><p><b>${esc(dq.title)}</b></p><ul class="quest-list in-alert">${main.map(q => `<li class="done"><span>${esc(q.label)}</span><b>[${q.max}/${q.max}]</b></li>`).join('')}</ul><p class="reward">Reward: <b>+${dq.reward} EXP</b></p>` });
+  }
+  if (!log.bonus && bonus.length && bonus.every(questDone)) {
+    log.bonus = true; log.xp += QUEST_XP.bonus;
+    alerts.push({ kind: 'pr', html: `<p class="sys-big gold">BONUS QUEST COMPLETE</p><p>${esc(bonus[0].label)}</p><p class="reward">Reward: <b>+${QUEST_XP.bonus} EXP</b></p>` });
+  }
+  return alerts;
+}
+function questPanel() {
+  const dq = dailyQuests(), log = state.questLog?.[todayISO()] || {};
+  const main = dq.quests.filter(q => !q.bonus), allDone = main.every(questDone);
+  const tp = todayPlanDay();
+  const row = q => `<li class="${questDone(q) ? 'done' : ''} ${q.bonus ? 'bonus' : ''}"><span>${q.bonus ? '<i>BONUS</i> ' : ''}${esc(q.label)}${q.hint && !questDone(q) ? `<small>${q.hint}</small>` : ''}</span><b>[${Math.min(q.cur, q.max)}/${q.max}]</b></li>`;
+  let buttons;
+  if (!tp) buttons = `<button class="btn primary wide" data-act="new">${IC.plus}<span>START WORKOUT</span></button>
+    <button class="btn ghost wide" data-wview="plan">${IC.bolt}<span>CREATE A TRAINING PLAN</span></button>`;
+  else if (tp.today) buttons = `<button class="btn ${allDone ? 'ghost' : 'primary'} wide" data-startday="${tp.i}">${IC.bolt}<span>${allDone ? 'TRAIN ' + esc(tp.day.name.toUpperCase()) + ' AGAIN' : 'START ' + esc(tp.day.name.toUpperCase())}</span></button>
+    <button class="btn ghost wide" data-act="new">${IC.plus}<span>FREE WORKOUT</span></button>`;
+  else buttons = `<button class="btn ghost wide" data-act="new">${IC.plus}<span>TRAIN ANYWAY</span></button>`;
+  return `
+    <section class="panel quest q-${dq.kind}">
+      <div class="panel-title"><span>DAILY QUEST</span></div>
+      <div class="quest-head">Quest: ${esc(dq.title)}</div>
+      <div class="quest-sub">${esc(dq.sub)}</div>
+      <ul class="quest-list">${dq.quests.map(row).join('')}</ul>
+      ${allDone ? `<div class="quest-ok">DAILY QUEST COMPLETE ${log.xp ? `· +${log.xp} EXP` : ''}</div>`
+        : `<div class="quest-reward">Reward: <b>+${dq.reward} EXP</b>${dq.quests.some(q => q.bonus) ? ` · bonus <b>+${QUEST_XP.bonus}</b>` : ''}</div>`}
+      <div class="quest-week"><span>WEEKLY · ${esc(dq.weekly.label)}</span><b>[${dq.weekly.cur}/${dq.weekly.max}]</b><div class="bar"><i style="width:${dq.weekly.cur / dq.weekly.max * 100}%"></i></div></div>
+      ${buttons}
+    </section>`;
+}
+
 /* ---------- editor de treino ---------- */
 let draft = null, baseline = null;
 
@@ -1603,6 +1683,7 @@ function saveDraft() {
   const i = state.workouts.findIndex(x => x.id === w.id);
   if (i >= 0) state.workouts[i] = w; else state.workouts.push(w);
   const wasNew = draft.isNew;
+  const questAlerts = awardDailyQuests();
   save(); closeEditor(); render();
   const after = C;
 
@@ -1636,6 +1717,7 @@ function saveDraft() {
   if (exUps.length) alerts.push({ kind: 'rank', html: `<p class="sys-big">EXERCISE RANK</p><ul class="ex-ups">${exUps.map(u => `<li>${emblem(u.ra, 40)}<div><b>${esc(u.def.name)}</b><span>${u.rb === null ? 'Initial rank' : RANKS[u.rb].name + ' →'} <b style="color:${TIERS[RANKS[u.ra].tier].glow}">${RANKS[u.ra].name}</b></span></div></li>`).join('')}</ul>` });
   const newGoals = after.goalsReached.filter(id => !before.goalsReached.includes(id));
   if (newGoals.length) alerts.push({ kind: 'pr', html: `<p class="sys-big gold">QUEST COMPLETE</p><p>Target reached:</p><ul class="ex-ups">${newGoals.map(id => `<li><span class="pr pr-w sm">🎯 TARGET</span><div><b>${esc(getEx(id).name)}</b><span>${fmtKg(num(state.goals[id]))} lifted</span></div></li>`).join('')}</ul><p class="reward">Reward: <b>+${newGoals.length * 200} EXP</b></p><p class="muted">Set a new target in Progress.</p>` });
+  alerts.push(...questAlerts);
   if (!alerts.length) toast('Workout updated', 'ok');
   queueAlerts(alerts);
 }
@@ -1859,7 +1941,7 @@ document.addEventListener('submit', ev => {
   if (f.id === 'bwlog-form') {
     const bw = num(fd.get('bw'));
     if (bw < 25 || bw > 300) return toast('Invalid bodyweight', 'bad');
-    logBodyweight(bw); render(false); toast(`Weight logged: ${fmtKg(bw)}`, 'ok');
+    logBodyweight(bw); const qa = awardDailyQuests(); save(); render(false); toast(`Weight logged: ${fmtKg(bw)}`, 'ok'); if (qa.length) queueAlerts(qa);
     const g = num(state.profile.bwGoal), series = bodyweightSeries();
     if (g && series.length > 1) {
       const prev = series[series.length - 2].v;

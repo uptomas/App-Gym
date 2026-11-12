@@ -15,6 +15,7 @@ A gamified gym tracker: log your workouts, break personal records and climb the 
   - Overall rank = average of the 8 main muscles. Untrained muscles count as 0, so a balanced physique climbs faster. You finish placements with 4 ranked muscles.
   - Shows the 1RM you need for the next division.
   - Male and female strength standards (choose in Profile).
+- **Daily quests adapt to your plan**: on a training day (e.g. Push A) complete the session, every planned exercise and the planned sets, plus a bonus (beat a record or hit your target on the main lift); on a rest day recover and log your bodyweight; without a plan, general quests. Completing them grants bonus EXP.
 - **RPG progression**: EXP per workout (volume + PR bonus), levels, titles, stats (Strength, Vitality, Endurance, Discipline), daily and weekly quests, weekly training streak.
 - **Training plan generator** (Workouts → Training plan):
   - Tick the equipment and machines your gym has (presets: full gym, barbell gym, home dumbbells, bodyweight).
