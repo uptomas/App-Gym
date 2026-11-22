@@ -31,14 +31,14 @@ const blendMMR = (str, vol) => W_STR * str + W_VOL * vol;
 /* ---------- ranks (estilo liga competitiva) ---------- */
 const TIERS = [
   // transformações de poder (as chaves internas mantêm-se para compatibilidade)
-  { key: 'bronze', name: 'Earthling', c1: '#ffcf9e', c2: '#8a3a12', glow: '#ff8f45' },
-  { key: 'silver', name: 'Kai-Rep', c1: '#ffc2b8', c2: '#9a1010', glow: '#ff4a3d' },
-  { key: 'gold', name: 'Super Swole', c1: '#fff3a6', c2: '#b07a00', glow: '#ffd21f' },
-  { key: 'plat', name: 'Super Swole 2', c1: '#ffffd6', c2: '#c9a000', glow: '#f6ff3d' },
-  { key: 'diamond', name: 'Super Swole 3', c1: '#ffe0a0', c2: '#9a5200', glow: '#ff9d00' },
-  { key: 'champ', name: 'Super Swole God', c1: '#ffc4dc', c2: '#8a0a3c', glow: '#ff2e7e' },
-  { key: 'gc', name: 'Super Swole Blue', c1: '#cdf3ff', c2: '#0b4fc2', glow: '#3dc8ff' },
-  { key: 'legend', name: 'Ultra Gainstinct', c1: '#ffffff', c2: '#6f7fa0', glow: '#e6ecff' },
+  { key: 'bronze', name: 'Earthling', c1: '#e6ebf5', c2: '#4a5570', glow: '#a3adc2' },
+  { key: 'silver', name: 'Kai-Rep', c1: '#ffb3b3', c2: '#8a0f0f', glow: '#ff3b3b' },
+  { key: 'gold', name: 'Super Swole', c1: '#fff3a6', c2: '#a87800', glow: '#ffd21f' },
+  { key: 'plat', name: 'Super Swole 2', c1: '#c8ffe0', c2: '#0a7a3f', glow: '#2bff88' },
+  { key: 'diamond', name: 'Super Swole 3', c1: '#ffd0a0', c2: '#8a3c00', glow: '#ff8a1f' },
+  { key: 'champ', name: 'Super Swole God', c1: '#ffc2ef', c2: '#86105f', glow: '#ff3fc8' },
+  { key: 'gc', name: 'Super Swole Blue', c1: '#c6e2ff', c2: '#0b3a9a', glow: '#2f8fff' },
+  { key: 'legend', name: 'Ultra Gainstinct', c1: '#ecdfff', c2: '#4a1d9e', glow: '#b07cff' },
 ];
 const STEP = 75; // MMR por divisão
 const ROMAN = ['I', 'II', 'III'];
