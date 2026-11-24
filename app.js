@@ -324,7 +324,7 @@ function compute(st = state, excludeId = null) {
       }
       s.sessions++;
       s.hist.push({ date: w.date, e1: topE, w: topW.w, v: topV.v, sv, wid: w.id });
-      s.last = { date: w.date, sets: e.sets };
+      s.last = { date: w.date, sets: e.sets, name: w.name };
     });
     const wxp = 30 + Math.round(wVol / 100) + wPr * 50;
     xp += wxp; totalVol += wVol;
@@ -547,7 +547,7 @@ const VIEWS = {
             const valid = e.sets.filter(s => num(s.r) > 0);
             const flags = valid.length ? e.sets.reduce((acc, _, si) => { const f = C.prFlags[`${w.id}:${ei}:${si}`]; if (f) { acc.w ||= f.w; acc.v ||= f.v; } return acc; }, {}) : {};
             const best = valid.reduce((a, s) => num(s.w) > num(a?.w ?? -1) ? s : a, null);
-            return `<li><span class="n">${esc(def.name)}</span><span class="d">${valid.length}× ${best ? `${def.bw && !num(best.w) ? 'BW' : fmt(num(best.w)) + 'kg'}×${num(best.r)}` : '—'}</span>${flags.w ? prBadge('w', true) : ''}${flags.v ? prBadge('v', true) : ''}</li>`;
+            return `<li><span class="n">${esc(def.name)}</span><span class="d">${valid.length}× ${best ? `${def.bw && !num(best.w) ? 'BW' : fmt(num(best.w)) + 'kg'}×${num(best.r)}` : '—'}</span>${flags.w ? prBadge('w', true) : ''}${flags.v ? prBadge('v', true) : ''}${valid.some(x => x.note) ? `<ul class="w-notes">${valid.map((x, i) => x.note ? `<li>📝 Set ${i + 1}: ${esc(x.note)}</li>` : '').join('')}</ul>` : ''}</li>`;
           }).join('')}
         </ul>
         <footer><span>Volume <b>${fmtKg(pw.vol, 0)}</b></span>${pw.prs ? `<span class="gold">★ ${pw.prs} record${pw.prs > 1 ? 's' : ''}</span>` : ''}</footer>
@@ -1121,12 +1121,30 @@ function todayPlanDay() {
   const next = [...state.plan.days].sort((a, b) => ((a.weekday - t + 7) % 7) - ((b.weekday - t + 7) % 7))[0];
   return { i: state.plan.days.indexOf(next), day: next, today: false };
 }
+// "Anterior" vem da última sessão do MESMO treino (ex.: Push → último Push)
+const wKey = w => String(w.planDay || w.name || '').trim().toLowerCase();
+const draftKey = () => draft ? String(draft.planDay || draft.name || '').trim().toLowerCase() : '';
+function lastInSplit(exId, key, excludeId) {
+  if (!key) return null;
+  const ws = state.workouts.filter(w => w.id !== excludeId && wKey(w) === key && w.exercises.some(e => e.exId === exId && e.sets.some(s => num(s.r) > 0)))
+    .sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || 0) - (a.createdAt || 0));
+  if (!ws.length) return null;
+  const e = ws[0].exercises.find(x => x.exId === exId);
+  return { date: ws[0].date, name: ws[0].name, sets: e.sets.filter(x => num(x.r) > 0), same: true };
+}
+function prevFor(exId) {
+  const own = lastInSplit(exId, draftKey(), draft?.id);
+  if (own) return own;
+  const g = baseline?.[exId]?.last;
+  return g ? { date: g.date, name: g.name, sets: g.sets.filter(x => num(x.r) > 0), same: false } : null;
+}
+
 function startPlanDay(di) {
   const day = state.plan.days[di];
   openEditor();
-  draft.name = day.name;
+  draft.name = day.name; draft.planDay = day.name;
   draft.exercises = day.ex.map(e => {
-    const last = baseline[e.id]?.last?.sets?.filter(s => num(s.r) > 0) || [];
+    const last = prevFor(e.id)?.sets || [];
     const w = last.length ? Math.max(...last.map(s => num(s.w))) : '';
     return { exId: e.id, plan: `${e.sets} × ${e.reps}`, sets: Array.from({ length: e.sets }, () => ({ w, r: '' })) };
   });
@@ -1535,7 +1553,10 @@ function renderEditor() {
 function exCard(e, ei) {
   const def = getEx(e.exId);
   const b = baseline[e.exId];
-  const prev = b?.last ? b.last.sets.filter(s => num(s.r) > 0).map(s => `${def.bw && !num(s.w) ? 'BW' : fmt(num(s.w))}×${num(s.r)}`).join(' · ') : null;
+  const pv = prevFor(e.exId);
+  const prev = pv ? pv.sets.map(s => `${def.bw && !num(s.w) ? 'BW' : fmt(num(s.w))}×${num(s.r)}${s.note ? '📝' : ''}`).join(' · ') : null;
+  const prevLbl = !pv ? 'Previous' : pv.same ? `Last ${esc(pv.name || 'session')} (${fmtDateShort(pv.date)})` : `First time in ${esc(draft.name || 'this workout')} · last anywhere${pv.name ? ` (${esc(pv.name)}, ${fmtDateShort(pv.date)})` : ''}`;
+  const prevNotes = pv ? pv.sets.map((s, i) => s.note ? `<li>📝 Set ${i + 1}: ${esc(s.note)}</li>` : '').join('') : '';
   return `
   <div class="panel ex-card" data-ei="${ei}">
     <div class="ex-head">
@@ -1545,16 +1566,19 @@ function exCard(e, ei) {
       </div>
       <button class="icon-btn" data-delex="${ei}" aria-label="Remove exercise">${IC.trash}</button>
     </div>
-    ${b ? `<div class="ex-rec"><span>Previous: ${prev || '—'}</span><span>Record: <b class="gold">${def.bw ? (b.bestW.w ? '+' + fmt(b.bestW.w) : 'BW') : fmt(b.bestW.w)}kg</b> · <b class="cyan">${fmt(b.bestVol.v, 0)} vol</b>${num(state.goals?.[e.exId]) ? ` · 🎯 ${fmt(num(state.goals[e.exId]))}kg` : ''}</span></div>` : '<div class="ex-rec"><span>First time — this workout sets your baseline.</span></div>'}
+    ${b ? `<div class="ex-rec"><span>${prevLbl}: ${prev || '—'}</span><span>Record: <b class="gold">${def.bw ? (b.bestW.w ? '+' + fmt(b.bestW.w) : 'BW') : fmt(b.bestW.w)}kg</b> · <b class="cyan">${fmt(b.bestVol.v, 0)} vol</b>${num(state.goals?.[e.exId]) ? ` · 🎯 ${fmt(num(state.goals[e.exId]))}kg` : ''}</span></div>` : '<div class="ex-rec"><span>First time — this workout sets your baseline.</span></div>'}
+    ${prevNotes ? `<ul class="prev-notes">${prevNotes}</ul>` : ''}
     <div class="sets">
-      <div class="set-h"><span>SET</span><span>${def?.bw ? '+KG' : 'KG'}</span><span>REPS</span><span>VOLUME</span><span></span></div>
+      <div class="set-h"><span>SET</span><span>${def?.bw ? '+KG' : 'KG'}</span><span>REPS</span><span>VOLUME</span><span></span><span></span></div>
       ${e.sets.map((s, si) => `
       <div class="set" data-si="${si}">
         <span class="set-n">${si + 1}</span>
         <input data-f="w" inputmode="decimal" value="${esc(s.w)}" placeholder="${def?.bw ? '0' : '—'}" aria-label="Weight set ${si + 1}">
         <input data-f="r" inputmode="numeric" value="${esc(s.r)}" placeholder="—" aria-label="Reps set ${si + 1}">
         <span class="set-vol"></span>
+        <button class="icon-btn sm note-btn ${String(s.note || '').trim() ? 'has' : ''}" data-noteset="${si}" aria-label="Note for set ${si + 1}">📝</button>
         <button class="icon-btn sm" data-delset="${si}" aria-label="Remove set">${IC.x}</button>
+        ${s.showNote || String(s.note || '').trim() ? `<input class="set-note" data-f="note" maxlength="140" value="${esc(s.note || '')}" placeholder="Note for set ${si + 1} (e.g. shoulder felt tight, used straps)…" aria-label="Note set ${si + 1}">` : ''}
       </div>`).join('')}
     </div>
     <button class="btn sm ghost add-set" data-addset="${ei}">${IC.plus}<span>Set</span></button>
@@ -1653,7 +1677,7 @@ function closeModal() {
   setTimeout(() => { m.hidden = true; m.innerHTML = ''; nextAlert(); }, 200);
 }
 function addExercise(exId) {
-  const last = baseline[exId]?.last?.sets?.filter(s => num(s.r) > 0);
+  const last = prevFor(exId)?.sets;
   const sets = last?.length ? last.map(s => ({ w: s.w, r: '' })) : [{ w: '', r: '' }];
   draft.exercises.push({ exId, sets });
   closeModal(); renderEditor();
@@ -1663,11 +1687,11 @@ function addExercise(exId) {
 /* ---------- guardar + notificações do Sistema ---------- */
 function saveDraft() {
   const exercises = draft.exercises
-    .map(e => ({ exId: e.exId, sets: e.sets.filter(s => num(s.r) > 0).map(s => ({ w: num(s.w), r: Math.round(num(s.r)) })) }))
+    .map(e => ({ exId: e.exId, sets: e.sets.filter(s => num(s.r) > 0).map(s => ({ w: num(s.w), r: Math.round(num(s.r)), ...(String(s.note || '').trim() ? { note: String(s.note).trim().slice(0, 140) } : {}) })) }))
     .filter(e => e.sets.length);
   if (!exercises.length) { toast('Add at least one set with reps', 'bad'); return; }
   const before = C;
-  const w = { id: draft.id, date: draft.date || todayISO(), name: draft.name.trim(), bw: num(draft.bw) || num(state.profile.bw), exercises, createdAt: draft.createdAt };
+  const w = { id: draft.id, date: draft.date || todayISO(), name: draft.name.trim(), ...(draft.planDay ? { planDay: draft.planDay } : {}), bw: num(draft.bw) || num(state.profile.bw), exercises, createdAt: draft.createdAt };
   const i = state.workouts.findIndex(x => x.id === w.id);
   if (i >= 0) state.workouts[i] = w; else state.workouts.push(w);
   const wasNew = draft.isNew;
@@ -1783,7 +1807,7 @@ function demoData() {
 
 /* ---------- eventos ---------- */
 document.addEventListener('click', async ev => {
-  const el = ev.target.closest('[data-tab],[data-act],[data-go],[data-edit],[data-addset],[data-delset],[data-delex],[data-pick],[data-copy],[data-filter],[data-delcustom],[data-muscle],[data-rest],[data-range],[data-metric],[data-progex],[data-wview],[data-eq],[data-preset],[data-split],[data-goal],[data-len],[data-swap],[data-startday],[data-rankview],[data-pedit],[data-pdone],[data-pmove],[data-pdel],[data-padd],[data-preplace],[data-wday]');
+  const el = ev.target.closest('[data-tab],[data-act],[data-go],[data-edit],[data-addset],[data-delset],[data-delex],[data-pick],[data-copy],[data-filter],[data-delcustom],[data-muscle],[data-rest],[data-range],[data-metric],[data-progex],[data-wview],[data-eq],[data-preset],[data-split],[data-goal],[data-len],[data-swap],[data-startday],[data-rankview],[data-pedit],[data-pdone],[data-pmove],[data-pdel],[data-padd],[data-preplace],[data-wday],[data-noteset]');
   if (!el) {
     if (ev.target.id === 'modal' && !$(".sys-window.k-warn, .sys-window.no-dismiss")) closeModal();
     return;
@@ -1827,7 +1851,7 @@ document.addEventListener('click', async ev => {
   if (d.preplace) { const [di, ei] = d.preplace.split(':').map(Number); pickTarget = { di, ei }; return openPicker(); }
   if (d.copy) {
     const src = state.workouts.find(w => w.id === d.copy);
-    draft.name = src.name;
+    draft.name = src.name; draft.planDay = src.planDay;
     draft.exercises = src.exercises.map(e => ({ exId: e.exId, sets: e.sets.map(s => ({ w: s.w, r: '' })) }));
     return renderEditor();
   }
@@ -1835,6 +1859,13 @@ document.addEventListener('click', async ev => {
     const e = draft.exercises[+d.addset]; const last = e.sets[e.sets.length - 1];
     e.sets.push({ w: last ? last.w : '', r: '' }); renderEditor();
     const inp = $(`.ex-card[data-ei="${d.addset}"] .set:last-child input[data-f="r"]`); inp?.focus();
+    return;
+  }
+  if (d.noteset !== undefined) {
+    const ei = +el.closest('.ex-card').dataset.ei, st = draft.exercises[ei].sets[+d.noteset];
+    st.showNote = !(st.showNote || String(st.note || '').trim()) ; if (!st.showNote && !String(st.note || '').trim()) st.note = '';
+    renderEditor();
+    $(`.ex-card[data-ei="${ei}"] .set[data-si="${d.noteset}"] .set-note`)?.focus();
     return;
   }
   if (d.delset !== undefined) {
