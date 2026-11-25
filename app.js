@@ -1531,6 +1531,15 @@ function minimizeEditor() {
   if (!draft) return;
   draftMin = true; persistDraft(true); hideSheet(); $('#rest')?.remove(); updateResumeBar();
 }
+async function cancelWorkout() {
+  if (!draft) return;
+  const sets = draft.exercises.reduce((a, e) => a + e.sets.filter(x => num(x.r) > 0).length, 0);
+  const editing = !draft.isNew;
+  if (!(await sysConfirm(editing ? `Cancel your changes to <b>${esc(draft.name || 'this workout')}</b>?` : `Cancel <b>${esc(draft.name || 'this workout')}</b>?`, editing ? 'DISCARD CHANGES' : 'CANCEL WORKOUT', 'KEEP TRAINING'))) return;
+  if (!(await sysConfirm(editing ? 'Are you sure? Your changes will be lost. The saved workout stays as it was.'
+    : `Are you sure? ${sets ? `<b>${sets} set${sets === 1 ? '' : 's'}</b> you logged will be lost.` : 'Nothing will be saved.'} This can't be undone.`, 'YES, DELETE IT', 'GO BACK'))) return;
+  closeEditor(); render(false); toast(editing ? 'Changes discarded' : 'Workout cancelled');
+}
 function resumeEditor() {
   if (!draft) return;
   draftMin = false; baseline = compute(state, draft.id).ex;
@@ -1550,14 +1559,14 @@ function updateResumeBar() {
   let bar = $('#resume');
   if (!draft || !draftMin) { bar?.remove(); document.body.classList.remove('has-resume'); clearInterval(resumeIv); resumeIv = null; return; }
   if (!bar) {
-    bar = document.createElement('button'); bar.id = 'resume'; bar.className = 'resume'; bar.dataset.act = 'resume';
+    bar = document.createElement('div'); bar.id = 'resume'; bar.className = 'resume'; bar.dataset.act = 'resume'; bar.setAttribute('role', 'button');
     document.body.appendChild(bar);
   }
   document.body.classList.add('has-resume');
   const sets = draft.exercises.reduce((a, e) => a + e.sets.filter(x => num(x.r) > 0).length, 0);
   const restLeft = rest ? rest.end - Date.now() : 0;
   bar.innerHTML = `<span class="rs-dot"></span><span class="rs-txt"><small>WORKOUT IN PROGRESS</small><b>${esc(draft.name || 'Workout')}</b></span>
-    <span class="rs-meta">${restLeft > 0 ? `<i class="rs-rest">REST ${mmss(restLeft)}</i>` : `${mmss(Date.now() - (draft.startedAt || draft.createdAt || Date.now()))} · ${sets} set${sets === 1 ? '' : 's'}`}</span><span class="rs-go">RESUME ›</span>`;
+    <span class="rs-meta">${restLeft > 0 ? `<i class="rs-rest">REST ${mmss(restLeft)}</i>` : `${mmss(Date.now() - (draft.startedAt || draft.createdAt || Date.now()))} · ${sets} set${sets === 1 ? '' : 's'}`}</span><span class="rs-go">RESUME ›</span><button class="rs-x" data-act="discard" aria-label="Cancel workout">${IC.x}</button>`;
   if (!resumeIv) resumeIv = setInterval(updateResumeBar, 1000);
 }
 
@@ -1568,6 +1577,7 @@ function renderEditor() {
     <header class="sheet-head">
       <button class="icon-btn" data-act="minimize" aria-label="Minimize workout" title="Minimize — keep the workout running">${IC.down}</button>
       <div class="sheet-title">${draft.isNew ? 'NEW WORKOUT' : 'EDIT WORKOUT'}</div>
+      <button class="icon-btn" data-act="discard" aria-label="Cancel workout" title="Cancel workout">${IC.trash}</button>
       <button class="btn primary sm" data-act="save">FINISH</button>
     </header>
     <div class="sheet-body">
@@ -1583,7 +1593,7 @@ function renderEditor() {
       </div>` : ''}
       <div id="ex-list">${draft.exercises.map((e, ei) => exCard(e, ei)).join('')}</div>
       <button class="btn wide dashed" data-act="pick">${IC.plus}<span>ADD EXERCISE</span></button>
-      <button class="btn ghost wide" data-act="discard">${IC.x}<span>${draft.isNew ? 'DISCARD WORKOUT' : 'DISCARD CHANGES'}</span></button>
+      <button class="btn ghost wide" data-act="discard">${IC.x}<span>${draft.isNew ? 'CANCEL WORKOUT' : 'DISCARD CHANGES'}</span></button>
       ${!draft.isNew ? `<button class="btn danger wide" data-act="delete">${IC.trash}<span>DELETE WORKOUT</span></button>` : ''}
     </div>
   </div>`;
@@ -1934,9 +1944,7 @@ document.addEventListener('click', async ev => {
     case 'close': return closeEditor();
     case 'minimize': return minimizeEditor();
     case 'resume': return resumeEditor();
-    case 'discard':
-      if (await sysConfirm(draft?.isNew ? 'Discard this workout? Nothing will be saved.' : 'Discard your changes to this workout?', 'DISCARD')) { closeEditor(); toast('Workout discarded'); }
-      return;
+    case 'discard': return cancelWorkout();
     case 'save': return saveDraft();
     case 'pick': pickTarget = null; return openPicker();
     case 'mclose': return closeModal();

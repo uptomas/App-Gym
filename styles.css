@@ -757,3 +757,6 @@ input[type="date"] { color-scheme: dark; }
 .rs-go { font-family: var(--hd); font-weight: 700; font-size: 11px; letter-spacing: .12em; padding: 6px 10px; border-radius: 6px; background: rgba(255,255,255,.16); white-space: nowrap; }
 body.has-resume #app { padding-bottom: calc(160px + env(safe-area-inset-bottom)); }
 body.has-resume .toasts { bottom: calc(150px + env(safe-area-inset-bottom)); }
+.rs-x { display: grid; place-items: center; width: 34px; height: 34px; flex: none; border-radius: 6px; border: 1px solid rgba(255, 255, 255, .3); background: rgba(0, 0, 0, .2); color: #fff; cursor: pointer; }
+.rs-x svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.4; }
+.sheet-head .icon-btn[data-act="discard"]:hover { color: #ff8aa0; }
