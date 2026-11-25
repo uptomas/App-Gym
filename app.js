@@ -246,7 +246,7 @@ function migrate(st) { // dados antigos em português
   return st;
 }
 // chaves só de interface / sincronização: não vão para a nuvem
-const LOCAL_KEYS = ['tab', 'selMuscle', 'recFilter', 'range', 'metric', 'progEx', 'wView', 'planEdit', 'planEditDay', 'rankView', 'lbSort', 'updatedAt', 'syncedAt', 'cloudUser', 'pendingInvite'];
+const LOCAL_KEYS = ['activeDraft', 'tab', 'selMuscle', 'recFilter', 'range', 'metric', 'progEx', 'wView', 'planEdit', 'planEditDay', 'rankView', 'lbSort', 'updatedAt', 'syncedAt', 'cloudUser', 'pendingInvite'];
 function syncData(st = state) { const o = { ...st }; for (const k of LOCAL_KEYS) delete o[k]; return o; }
 let lastSyncJson = null;
 function saveLocal() { try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch { toast('Could not save on this device', 'bad'); } }
@@ -443,6 +443,7 @@ const IC = {
   copy: '<svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="1"/><path d="M4 16V4h12"/></svg>',
   search: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>',
   chev: '<svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>',
+  down: '<svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>',
   swap: '<svg viewBox="0 0 24 24"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg>',
   card: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="11" r="2.2"/><path d="M5.5 16c.6-1.6 1.7-2.3 3-2.3s2.4.7 3 2.3M14 10h4M14 13h4"/></svg>',
   edit: '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m14 6 4 4"/></svg>',
@@ -1502,24 +1503,62 @@ function questPanel() {
 }
 
 /* ---------- editor de treino ---------- */
-let draft = null, baseline = null;
+let draft = null, baseline = null, draftMin = false;
 
 function openEditor(id = null) {
   const src = id ? state.workouts.find(w => w.id === id) : null;
   draft = src ? JSON.parse(JSON.stringify(src)) : {
     id: uid(), date: todayISO(), name: '', bw: state.profile.bw, exercises: [], createdAt: Date.now(), isNew: true,
   };
+  draft.startedAt = Date.now(); draftMin = false;
   baseline = compute(state, draft.id).ex;
   renderEditor();
   const sh = $('#sheet'); sh.hidden = false; requestAnimationFrame(() => sh.classList.add('open'));
   document.body.classList.add('locked');
 }
-function closeEditor() {
-  stopRest();
+function hideSheet() {
   const sh = $('#sheet'); sh.classList.remove('open');
-  setTimeout(() => { sh.hidden = true; sh.innerHTML = ''; }, 250);
+  setTimeout(() => { if (!sh.classList.contains('open')) { sh.hidden = true; sh.innerHTML = ''; } }, 250);
   document.body.classList.remove('locked');
-  draft = null;
+}
+// terminar/descartar: o treino deixa de estar em curso
+function closeEditor() {
+  stopRest(); hideSheet();
+  draft = null; draftMin = false; state.activeDraft = null; saveLocal(); updateResumeBar();
+}
+// minimizar: o treino continua em curso (guardado no dispositivo) e podes navegar na app
+function minimizeEditor() {
+  if (!draft) return;
+  draftMin = true; persistDraft(true); hideSheet(); $('#rest')?.remove(); updateResumeBar();
+}
+function resumeEditor() {
+  if (!draft) return;
+  draftMin = false; baseline = compute(state, draft.id).ex;
+  renderEditor();
+  const sh = $('#sheet'); sh.hidden = false; requestAnimationFrame(() => sh.classList.add('open'));
+  document.body.classList.add('locked'); updateResumeBar(); tickRest();
+}
+let persistT = null;
+function persistDraft(now) {
+  clearTimeout(persistT);
+  const doit = () => { if (draft) { state.activeDraft = JSON.parse(JSON.stringify(draft)); saveLocal(); } };
+  now ? doit() : (persistT = setTimeout(doit, 400));
+}
+const mmss = ms => { const s = Math.max(0, Math.floor(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+let resumeIv = null;
+function updateResumeBar() {
+  let bar = $('#resume');
+  if (!draft || !draftMin) { bar?.remove(); document.body.classList.remove('has-resume'); clearInterval(resumeIv); resumeIv = null; return; }
+  if (!bar) {
+    bar = document.createElement('button'); bar.id = 'resume'; bar.className = 'resume'; bar.dataset.act = 'resume';
+    document.body.appendChild(bar);
+  }
+  document.body.classList.add('has-resume');
+  const sets = draft.exercises.reduce((a, e) => a + e.sets.filter(x => num(x.r) > 0).length, 0);
+  const restLeft = rest ? rest.end - Date.now() : 0;
+  bar.innerHTML = `<span class="rs-dot"></span><span class="rs-txt"><small>WORKOUT IN PROGRESS</small><b>${esc(draft.name || 'Workout')}</b></span>
+    <span class="rs-meta">${restLeft > 0 ? `<i class="rs-rest">REST ${mmss(restLeft)}</i>` : `${mmss(Date.now() - (draft.startedAt || draft.createdAt || Date.now()))} · ${sets} set${sets === 1 ? '' : 's'}`}</span><span class="rs-go">RESUME ›</span>`;
+  if (!resumeIv) resumeIv = setInterval(updateResumeBar, 1000);
 }
 
 function renderEditor() {
@@ -1527,7 +1566,7 @@ function renderEditor() {
   $('#sheet').innerHTML = `
   <div class="sheet-inner">
     <header class="sheet-head">
-      <button class="icon-btn" data-act="close" aria-label="Close">${IC.x}</button>
+      <button class="icon-btn" data-act="minimize" aria-label="Minimize workout" title="Minimize — keep the workout running">${IC.down}</button>
       <div class="sheet-title">${draft.isNew ? 'NEW WORKOUT' : 'EDIT WORKOUT'}</div>
       <button class="btn primary sm" data-act="save">FINISH</button>
     </header>
@@ -1544,10 +1583,12 @@ function renderEditor() {
       </div>` : ''}
       <div id="ex-list">${draft.exercises.map((e, ei) => exCard(e, ei)).join('')}</div>
       <button class="btn wide dashed" data-act="pick">${IC.plus}<span>ADD EXERCISE</span></button>
+      <button class="btn ghost wide" data-act="discard">${IC.x}<span>${draft.isNew ? 'DISCARD WORKOUT' : 'DISCARD CHANGES'}</span></button>
       ${!draft.isNew ? `<button class="btn danger wide" data-act="delete">${IC.trash}<span>DELETE WORKOUT</span></button>` : ''}
     </div>
   </div>`;
   draft.exercises.forEach((_, ei) => refreshCard(ei));
+  persistDraft();
 }
 
 function exCard(e, ei) {
@@ -1620,7 +1661,8 @@ function startRest(sec = num(state.profile.rest) || 90) {
 function stopRest() { if (rest) clearInterval(rest.iv); rest = null; $('#rest')?.remove(); }
 function tickRest() {
   if (!rest) return;
-  const host = $('.sheet-inner'); if (!host) return stopRest();
+  const host = $('.sheet-inner');
+  if (!host) { if (!draftMin) return stopRest(); if (rest.end <= Date.now()) { stopRest(); navigator.vibrate?.([200, 100, 200]); toast('Rest over — next set!', 'ok'); } return; }
   let el = $('#rest');
   if (!el) {
     el = document.createElement('div'); el.id = 'rest'; el.className = 'rest';
@@ -1748,13 +1790,13 @@ function nextAlert() {
   if (navigator.vibrate && (a.kind === 'pr' || a.kind === 'level')) navigator.vibrate([30, 40, 60]);
 }
 
-function sysConfirm(text, okLabel = 'CONFIRM') {
+function sysConfirm(text, okLabel = 'CONFIRM', cancelLabel = 'CANCEL') {
   return new Promise(res => {
     const m = $('#modal');
     m.innerHTML = `<div class="sys-window k-warn">
       <div class="sys-head"><span class="sys-icon">!</span><span>WARNING</span></div>
       <div class="sys-body"><p>${text}</p></div>
-      <div class="btn-row"><button class="btn ghost" data-c="0">CANCEL</button><button class="btn danger" data-c="1">${okLabel}</button></div>
+      <div class="btn-row"><button class="btn ghost" data-c="0">${cancelLabel}</button><button class="btn danger" data-c="1">${okLabel}</button></div>
     </div>`;
     m.hidden = false; requestAnimationFrame(() => m.classList.add('open'));
     m.onclick = ev => {
@@ -1813,6 +1855,11 @@ document.addEventListener('click', async ev => {
     return;
   }
   const d = el.dataset;
+  if ((d.edit || d.startday !== undefined || d.act === 'new') && draft && draftMin) {
+    const startNew = await sysConfirm(`You have a workout in progress (<b>${esc(draft.name || 'Workout')}</b>). Resume it or discard it and start this one?`, 'DISCARD & START', 'RESUME');
+    if (!startNew) return resumeEditor();
+    closeEditor();
+  }
   if (d.tab) return go(d.tab);
   if (d.muscle) { state.selMuscle = state.selMuscle === d.muscle ? null : d.muscle; save(); return render(false); }
   if (d.rest !== undefined) {
@@ -1885,6 +1932,11 @@ document.addEventListener('click', async ev => {
   switch (d.act) {
     case 'new': return openEditor();
     case 'close': return closeEditor();
+    case 'minimize': return minimizeEditor();
+    case 'resume': return resumeEditor();
+    case 'discard':
+      if (await sysConfirm(draft?.isNew ? 'Discard this workout? Nothing will be saved.' : 'Discard your changes to this workout?', 'DISCARD')) { closeEditor(); toast('Workout discarded'); }
+      return;
     case 'save': return saveDraft();
     case 'pick': pickTarget = null; return openPicker();
     case 'mclose': return closeModal();
@@ -1935,12 +1987,13 @@ document.addEventListener('input', ev => {
   const t = ev.target;
   if (t.id === 'pick-q') return fillPicker(t.value);
   if (!draft) return;
+  persistDraft();
   if (t.id === 'd-date') draft.date = t.value;
   else if (t.id === 'd-name') draft.name = t.value;
   else if (t.id === 'd-bw') { draft.bw = t.value; draft.exercises.forEach((_, i) => refreshCard(i)); }
   else if (t.dataset.f) {
     const ei = +t.closest('.ex-card').dataset.ei, si = +t.closest('.set').dataset.si;
-    draft.exercises[ei].sets[si][t.dataset.f] = t.value;
+    draft.exercises[ei].sets[si][t.dataset.f] = t.value; persistDraft();
     refreshCard(ei);
   }
 });
@@ -2017,7 +2070,7 @@ document.addEventListener('change', ev => {
 });
 
 document.addEventListener('keydown', ev => {
-  if (ev.key === 'Escape') { if (!$('#modal').hidden) closeModal(); else if (draft) closeEditor(); else if ($('.card-sheet')) closeAthleteCard(); }
+  if (ev.key === 'Escape') { if (!$('#modal').hidden) closeModal(); else if (draft && !draftMin) minimizeEditor(); else if ($('.card-sheet')) closeAthleteCard(); }
   if (ev.key === 'Enter' && ev.target.matches('.set input')) {
     ev.preventDefault();
     const ins = $$('.sheet .set input'); const i = ins.indexOf(ev.target); ins[i + 1]?.focus();
@@ -2050,7 +2103,9 @@ document.addEventListener('keydown', ev => {
 })();
 
 /* ---------- arranque ---------- */
+if (state.activeDraft) { draft = state.activeDraft; draftMin = true; }
 render();
+updateResumeBar();
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }

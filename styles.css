@@ -743,3 +743,17 @@ input[type="date"] { color-scheme: dark; }
 .set-note { grid-column: 2 / -1; min-height: 36px; padding: 6px 10px; font-family: var(--bd); font-size: 14px; font-weight: 600; text-align: left; color: #ffe9a8; background: rgba(255, 207, 74, .06); border-color: rgba(255, 207, 74, .35); }
 .prev-notes, .w-notes { list-style: none; padding: 0; margin: 0 0 8px; display: grid; gap: 2px; font-size: 13px; color: #e8d59a; }
 .w-notes { flex-basis: 100%; margin: 2px 0 0; font-size: 12.5px; }
+
+/* treino em curso (minimizado) */
+.resume { position: fixed; z-index: 35; left: 0; right: 0; margin: 0 auto; bottom: calc(74px + env(safe-area-inset-bottom)); width: min(calc(100% - 20px), 540px);
+  display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; cursor: pointer; text-align: left; color: #fff;
+  background: linear-gradient(90deg, rgba(29, 78, 216, .95), rgba(14, 116, 180, .95)); border: 1.5px solid #7cc4ff; box-shadow: 0 0 26px rgba(56, 140, 255, .6), 0 10px 24px rgba(0,0,0,.5); animation: rise .3s both; }
+.rs-dot { width: 10px; height: 10px; border-radius: 50%; background: #4dffb0; box-shadow: 0 0 10px #4dffb0; flex: none; animation: pulse 1s infinite; }
+.rs-txt { display: grid; min-width: 0; flex: 1; }
+.rs-txt small { font-family: var(--hd); font-size: 8.5px; letter-spacing: .18em; color: #cfe6ff; }
+.rs-txt b { font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rs-meta { font-family: var(--hd); font-size: 12px; color: #dff1ff; white-space: nowrap; }
+.rs-rest { font-style: normal; color: var(--gold); text-shadow: 0 0 8px var(--gold); }
+.rs-go { font-family: var(--hd); font-weight: 700; font-size: 11px; letter-spacing: .12em; padding: 6px 10px; border-radius: 6px; background: rgba(255,255,255,.16); white-space: nowrap; }
+body.has-resume #app { padding-bottom: calc(160px + env(safe-area-inset-bottom)); }
+body.has-resume .toasts { bottom: calc(150px + env(safe-area-inset-bottom)); }
